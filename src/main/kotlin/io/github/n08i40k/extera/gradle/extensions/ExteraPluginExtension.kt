@@ -58,7 +58,7 @@ abstract class ExteraPluginExtension @Inject constructor(
     /**
      * Version of r8 that will be used to convert .jar to .dex and shrink unused code.
      *
-     * Example: `TODO`
+     * Example: `"9.4.17"`
      */
     abstract val r8Version: Property<String>
 
