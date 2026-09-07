@@ -7,12 +7,13 @@ import io.github.n08i40k.extera.gradle.tasks.BuildDexTask
 import io.github.n08i40k.extera.gradle.tasks.ProcessTelegramJarTask
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.Task
 import org.gradle.api.attributes.Attribute
 import org.gradle.api.file.ArchiveOperations
-import org.gradle.api.file.Directory
 import org.gradle.api.file.FileCollection
-import org.gradle.api.file.RegularFile
+import org.gradle.api.logging.Logger
 import org.gradle.api.provider.Provider
+import org.gradle.api.tasks.TaskProvider
 import org.gradle.api.tasks.compile.JavaCompile
 import org.gradle.jvm.tasks.Jar
 import org.gradle.kotlin.dsl.attributes
@@ -23,42 +24,26 @@ import org.gradle.kotlin.dsl.register
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompileTool
 import javax.inject.Inject
 
-private const val EXTENSION_NAME = "exteraPlugin"
-private const val ANDROID_LIBRARY_PLUGIN = "com.android.library"
-
-private const val TASK_GROUP = "extera plugin"
-private const val R8_CONFIGURATION = "exteraR8"
-
-private const val DEFAULT_R8_VERSION = "9.4.17"
-
-private val DEFAULT_CONFLICTING_PACKAGES = listOf(
-    "kotlin/",
-    "kotlinx/coroutines/",
-    "com/android/tools/r8/",
-)
 
 @Suppress("UnstableApiUsage")
-abstract class ExteraPlugin @Inject constructor(
-    private val archives: ArchiveOperations
-) : Plugin<Project> {
+abstract class ExteraPlugin : Plugin<Project> {
+    private companion object {
+        const val EXTENSION_NAME = "extera"
+        const val TASK_GROUP = "extera"
+
+        const val ANDROID_LIBRARY_PLUGIN = "com.android.library"
+        const val R8_CONFIGURATION = "exteraR8"
+    }
+
     override fun apply(target: Project) {
-        fun projectFile(path: String): RegularFile =
-            target.layout.projectDirectory.file(path)
+        val extension = target.extensions.create<ExteraPluginExtension>(EXTENSION_NAME)
+            .apply {
+                dexOutputDir.convention(target.layout.buildDirectory.dir("outputs/dex"))
+                jarOutputDir.convention(target.layout.buildDirectory.dir("outputs/jar"))
+            }
 
-        fun projectDir(path: String): Directory =
-            target.layout.projectDirectory.dir(path)
-
-        val extension = target.extensions.create<ExteraPluginExtension>(EXTENSION_NAME).apply {
-            telegramJar.convention(projectFile("libs/Telegram.jar"))
-            conflictingPackages.convention(DEFAULT_CONFLICTING_PACKAGES)
-            proguardFiles.convention(projectFile("proguard-rules.pro"))
-            r8Version.convention(DEFAULT_R8_VERSION)
-            outputDir.convention(projectDir("dist"))
-        }
-
-        target.pluginManager.withPlugin(ANDROID_LIBRARY_PLUGIN) {
-            target.configureExtension(extension)
-        }
+        target.pluginManager
+            .withPlugin(ANDROID_LIBRARY_PLUGIN) { target.configureExtension(extension) }
     }
 
     private fun Project.configureExtension(extension: ExteraPluginExtension) {
@@ -67,14 +52,14 @@ abstract class ExteraPlugin @Inject constructor(
         // use specified version of r8 in project
         dependencies.addProvider(
             R8_CONFIGURATION,
-            extension.r8Version.map { "com.android.tools:r8:$it" })
+            extension.r8.version.map { "com.android.tools:r8:$it" })
 
         val processTelegramJar = tasks.register<ProcessTelegramJarTask>("processTelegramJar") {
             group = TASK_GROUP
             description = "Fix access modifiers for inner classes and strip conflicting packages"
 
-            inputJar.set(extension.telegramJar)
-            excludedPrefixes.set(extension.conflictingPackages)
+            inputJar.set(extension.telegram.jar)
+            excludedPrefixes.set(extension.telegram.conflictingPackages)
             outputJar.set(layout.buildDirectory.file("intermediates/telegram/Telegram.stripped.jar"))
         }
 
@@ -86,9 +71,14 @@ abstract class ExteraPlugin @Inject constructor(
             description = "Builds the dex of every variant"
         }
 
-        val packageAll = tasks.register("packagePluginJar") {
-            group = TASK_GROUP
-            description = "Packages every variant into a plugin jar"
+        project.afterEvaluate {
+            if (!extension.manifestConfigured.get())
+                return@afterEvaluate
+
+            tasks.register("packagePluginJar") {
+                group = TASK_GROUP
+                description = "Packages every variant into a plugin jar"
+            }
         }
 
         val androidComponents = extensions.getByType<LibraryAndroidComponentsExtension>()
@@ -117,9 +107,9 @@ abstract class ExteraPlugin @Inject constructor(
                         .flatMap { it.destinationDirectory })
                 from(runtimeJars.map { jars -> jars.map(::zipTree) })
 
-                val shadedPackage = extension.shadedPackage.get()
+                val shadedPackage = extension.shadow.targetPackage.get()
 
-                for (spec in extension.relocations.get()) {
+                for (spec in extension.shadow.relocations.get()) {
                     val pkg = spec.pkg + "."
 
                     relocate(pkg, "$shadedPackage.$pkg") {
@@ -128,7 +118,7 @@ abstract class ExteraPlugin @Inject constructor(
                 }
             }
 
-            val buildDex = tasks.register<BuildDexTask>("buildDex$variantTitle") {
+            val buildDexVariant = tasks.register<BuildDexTask>("buildDex$variantTitle") {
                 group = TASK_GROUP
                 description = "Compiles the $variantName fat jar into dex"
 
@@ -140,45 +130,54 @@ abstract class ExteraPlugin @Inject constructor(
                     processTelegramJar.flatMap { it.outputJar },
                 )
 
-                proguardFiles.from(extension.proguardFiles)
+                proguardFiles.from(extension.r8.proguardFiles)
                 r8Classpath.from(r8)
 
-                minSdk.set(extension.minSdk.orElse(variant.minSdk.apiLevel))
+                minSdk.set(extension.r8.minSdk.orElse(variant.minSdk.apiLevel))
                 release.set(isRelease)
 
                 mergedClasspathJar.set(layout.buildDirectory.file("intermediates/dex-classpath/$variantName/classpath.jar"))
-                outputDir.set(extension.outputDir.map { it.dir("dex/$variantName") })
+                outputDir.set(extension.dexOutputDir.map { it.dir(variantName) })
             }
 
-            val packageJar = tasks.register<Jar>("packagePluginJar$variantTitle") {
-                group = TASK_GROUP
-                description = "Packages the $variantName dex into a plugin jar"
+            buildDexAll.configure { dependsOn(buildDexVariant) }
 
-                destinationDirectory.set(extension.outputDir)
-                archiveBaseName.set(extension.pluginId)
-                archiveVersion.set(extension.pluginVersion)
-                archiveClassifier.set(if (isRelease) "" else variantName)
+            project.afterEvaluate {
+                if (!extension.manifestConfigured.get())
+                    return@afterEvaluate
 
-                isPreserveFileTimestamps = true
-                isReproducibleFileOrder = true
+                val packageJarVariant = tasks.register<Jar>("packagePluginJar$variantTitle") {
+                    group = TASK_GROUP
+                    description = "Packages the $variantName dex into a plugin jar"
 
-                from(buildDex.flatMap { it.outputDir })
+                    destinationDirectory.set(extension.jarOutputDir)
+                    archiveBaseName.set(extension.manifest.id)
+                    archiveVersion.set(extension.manifest.version)
+                    archiveClassifier.set(if (isRelease) "" else variantName)
 
-                manifest {
-                    attributes(
-                        "Plugin-Id" to extension.pluginId.get(),
-                        "Plugin-Name" to extension.pluginName.get(),
-                        "Plugin-Description" to extension.pluginDescription.get(),
-                        "Plugin-Author" to extension.pluginAuthor.get(),
-                        "Plugin-Version" to extension.pluginVersion.get(),
-                        "Plugin-Min-Client-Version" to extension.minClientVersion.get(),
-                        "Plugin-Class" to extension.entryClass.get(),
-                    )
+                    isPreserveFileTimestamps = true
+                    isReproducibleFileOrder = true
+
+                    from(buildDexVariant.flatMap { it.outputDir })
+
+                    manifest {
+                        extension.manifest.apply {
+                            attributes(
+                                "Plugin-Id" to id.get(),
+                                "Plugin-Name" to name.get(),
+                                "Plugin-Description" to description.get(),
+                                "Plugin-Author" to author.get(),
+                                "Plugin-Version" to version.get(),
+                                "Plugin-Min-Client-Version" to minClientVersion.get(),
+                                "Plugin-Class" to entryClass.get(),
+                            )
+                        }
+                    }
                 }
-            }
 
-            buildDexAll.configure { dependsOn(buildDex) }
-            packageAll.configure { dependsOn(packageJar) }
+                tasks.getByName("packagePluginJar")
+                    .dependsOn(packageJarVariant)
+            }
         }
     }
 
