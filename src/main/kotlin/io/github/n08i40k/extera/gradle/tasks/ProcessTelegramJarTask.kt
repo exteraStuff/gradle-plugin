@@ -38,6 +38,8 @@ private val ZIP_EPOCH = FileTime.fromMillis(315_532_800_000L)
  */
 private val TYPE_DESCRIPTOR = Regex("L([^;<]+)")
 
+private val ALWAYS_EXCLUDED_PREFIXES = listOf("java/", "com/android/tools/r8/")
+
 private val ZipFile.classEntries: Sequence<ZipEntry>
     get() = entries().asSequence()
         .filter { !it.isDirectory && it.name.endsWith(".class") }
@@ -102,7 +104,8 @@ abstract class ProcessTelegramJarTask : DefaultTask() {
             .apply { parentFile.mkdirs() }
 
         var classCount = 0
-        val prefixes = excludedPrefixes.get().map { it.replace('.', '/') }
+        val prefixes = ALWAYS_EXCLUDED_PREFIXES +
+                excludedPrefixes.get().map { it.replace('.', '/') }
 
         val accessMap = buildAccessMap(input)
 
