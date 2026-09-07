@@ -11,6 +11,7 @@ import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.logging.Logging
+import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
 import org.gradle.workers.WorkAction
 import org.gradle.workers.WorkParameters
@@ -44,6 +45,11 @@ interface R8Parameters : WorkParameters {
      * ProGuard rules.
      */
     val proguardFiles: ConfigurableFileCollection
+
+    /**
+     * Packages whose original names are missing after relocation.
+     */
+    val relocatedPackages: ListProperty<String>
 
     /**
      * Minimal SDK version.
@@ -87,6 +93,11 @@ abstract class R8WorkAction : WorkAction<R8Parameters> {
             .addProguardConfigurationFiles(parameters.proguardFiles.paths)
             // Ignore unresolved errors in telegram jar.
             .addProguardConfiguration(listOf("-ignorewarnings"), Origin.root())
+            // Referencing non-shaded names of shaded packages
+            .addProguardConfiguration(
+                parameters.relocatedPackages.get().map { "-dontwarn $it.**" },
+                Origin.root()
+            )
             .build()
 
         R8.run(command)

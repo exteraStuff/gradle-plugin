@@ -5,6 +5,7 @@ import org.gradle.api.DefaultTask
 import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.RegularFileProperty
+import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Classpath
 import org.gradle.api.tasks.Input
@@ -51,6 +52,12 @@ abstract class BuildDexTask : DefaultTask() {
     abstract val proguardFiles: ConfigurableFileCollection
 
     /**
+     * Packages whose original names are missing after relocation.
+     */
+    @get:Input
+    abstract val relocatedPackages: ListProperty<String>
+
+    /**
      * Minimal SDK version.
      * Same as minSdk at compile time.
      */
@@ -87,6 +94,7 @@ abstract class BuildDexTask : DefaultTask() {
             bootClasspathJars.from(this@BuildDexTask.bootClasspathJars)
             classpathJars.from(this@BuildDexTask.classpathJars)
             proguardFiles.from(this@BuildDexTask.proguardFiles)
+            relocatedPackages.set(this@BuildDexTask.relocatedPackages)
             minSdk.set(this@BuildDexTask.minSdk)
             release.set(this@BuildDexTask.release)
             mergedClasspathJar.set(this@BuildDexTask.mergedClasspathJar)

@@ -7,13 +7,10 @@ import io.github.n08i40k.extera.gradle.tasks.BuildDexTask
 import io.github.n08i40k.extera.gradle.tasks.ProcessTelegramJarTask
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import org.gradle.api.Task
 import org.gradle.api.attributes.Attribute
-import org.gradle.api.file.ArchiveOperations
+import org.gradle.api.file.DuplicatesStrategy
 import org.gradle.api.file.FileCollection
-import org.gradle.api.logging.Logger
 import org.gradle.api.provider.Provider
-import org.gradle.api.tasks.TaskProvider
 import org.gradle.api.tasks.compile.JavaCompile
 import org.gradle.jvm.tasks.Jar
 import org.gradle.kotlin.dsl.attributes
@@ -22,7 +19,6 @@ import org.gradle.kotlin.dsl.getByType
 import org.gradle.kotlin.dsl.named
 import org.gradle.kotlin.dsl.register
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompileTool
-import javax.inject.Inject
 
 
 @Suppress("UnstableApiUsage")
@@ -99,6 +95,12 @@ abstract class ExteraPlugin : Plugin<Project> {
                 destinationDirectory.set(layout.buildDirectory.dir("intermediates/shaded"))
                 archiveFileName.set("classes-$variantName.jar")
 
+                mergeServiceFiles()
+
+                filesMatching(listOf("META-INF/*.kotlin_module", "META-INF/services/**")) {
+                    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+                }
+
                 from(
                     tasks.named<KotlinCompileTool>("compile${variantTitle}Kotlin")
                         .flatMap { it.destinationDirectory })
@@ -131,6 +133,7 @@ abstract class ExteraPlugin : Plugin<Project> {
                 )
 
                 proguardFiles.from(extension.r8.proguardFiles)
+                relocatedPackages.set(extension.shadow.relocations.map { specs -> specs.map { it.pkg } })
                 r8Classpath.from(r8)
 
                 minSdk.set(extension.r8.minSdk.orElse(variant.minSdk.apiLevel))
