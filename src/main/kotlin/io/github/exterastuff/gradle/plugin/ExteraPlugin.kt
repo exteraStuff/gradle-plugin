@@ -1,10 +1,10 @@
-package io.github.n08i40k.extera.gradle
+package io.github.exterastuff.gradle.plugin
 
 import com.android.build.api.variant.LibraryAndroidComponentsExtension
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
-import io.github.n08i40k.extera.gradle.extensions.ExteraPluginExtension
-import io.github.n08i40k.extera.gradle.tasks.BuildDexTask
-import io.github.n08i40k.extera.gradle.tasks.ProcessTelegramJarTask
+import io.github.exterastuff.gradle.plugin.extensions.ExteraPluginExtension
+import io.github.exterastuff.gradle.plugin.tasks.BuildDexTask
+import io.github.exterastuff.gradle.plugin.tasks.ProcessTelegramJarTask
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.attributes.Attribute

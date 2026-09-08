@@ -17,13 +17,13 @@ Android-library модуль, уводит зависимости в свои п
 Репозиторий нужно склонировать и подключить как composite build.
 
 ```sh
-git clone https://github.com/n08i40k/extera-gradle-plugin
+git clone https://github.com/exteraStuff/gradle-plugin
 ```
 
 ```kotlin
 // settings.gradle.kts
 pluginManagement {
-    includeBuild("/path/to/extera-gradle-plugin")
+    includeBuild("/path/to/gradle-plugin")
 
     // ...
 }
@@ -33,7 +33,7 @@ pluginManagement {
 // build.gradle.kts
 plugins {
     id("com.android.library") version "9.0.1"
-    id("io.github.n08i40k.extera")
+    id("io.github.exterastuff.gradle.plugin")
 }
 ```
 

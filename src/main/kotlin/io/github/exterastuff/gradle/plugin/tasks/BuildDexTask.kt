@@ -1,6 +1,6 @@
-package io.github.n08i40k.extera.gradle.tasks
+package io.github.exterastuff.gradle.plugin.tasks
 
-import io.github.n08i40k.extera.gradle.actions.R8WorkAction
+import io.github.exterastuff.gradle.plugin.actions.R8WorkAction
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.DirectoryProperty

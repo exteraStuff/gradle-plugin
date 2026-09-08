@@ -1,4 +1,4 @@
-package io.github.n08i40k.extera.gradle.extensions
+package io.github.exterastuff.gradle.plugin.extensions
 
 import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.provider.Property

@@ -1,4 +1,4 @@
-package io.github.n08i40k.extera.gradle.tasks
+package io.github.exterastuff.gradle.plugin.tasks
 
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException

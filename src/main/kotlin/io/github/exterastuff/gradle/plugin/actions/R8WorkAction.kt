@@ -1,4 +1,4 @@
-package io.github.n08i40k.extera.gradle.actions
+package io.github.exterastuff.gradle.plugin.actions
 
 import com.android.tools.r8.CompilationMode
 import com.android.tools.r8.Diagnostic
@@ -7,6 +7,7 @@ import com.android.tools.r8.OutputMode
 import com.android.tools.r8.R8
 import com.android.tools.r8.R8Command
 import com.android.tools.r8.origin.Origin
+import io.github.exterastuff.gradle.plugin.actions.paths
 import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.RegularFileProperty

@@ -2,7 +2,7 @@ plugins {
     `kotlin-dsl`
 }
 
-group = "io.github.n08i40k"
+group = "io.github.exterastuff"
 version = "0.1.0"
 
 repositories {
@@ -27,8 +27,8 @@ configurations.compileClasspath {
 }
 
 gradlePlugin {
-    plugins.create("exteraPlugin") {
-        id = "io.github.n08i40k.extera"
-        implementationClass = "io.github.n08i40k.extera.gradle.ExteraPlugin"
+    plugins.create("extera") {
+        id = "io.github.exterastuff.gradle.plugin"
+        implementationClass = "io.github.exterastuff.gradle.plugin.ExteraPlugin"
     }
 }
