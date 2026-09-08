@@ -169,6 +169,7 @@ abstract class ExteraPlugin : Plugin<Project> {
                                 "Plugin-Id" to id.get(),
                                 "Plugin-Name" to name.get(),
                                 "Plugin-Description" to description.get(),
+                                "Plugin-Icon" to icon.get(),
                                 "Plugin-Author" to author.get(),
                                 "Plugin-Version" to version.get(),
                                 "Plugin-Min-Client-Version" to minClientVersion.get(),

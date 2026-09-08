@@ -9,6 +9,7 @@ abstract class PluginManifestExtension {
     abstract val id: Property<String>
     abstract val name: Property<String>
     abstract val description: Property<String>
+    abstract val icon: Property<String>
     abstract val author: Property<String>
     abstract val version: Property<String>
 
