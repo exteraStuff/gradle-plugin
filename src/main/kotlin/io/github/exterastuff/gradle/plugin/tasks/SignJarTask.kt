@@ -55,7 +55,7 @@ abstract class SignJarTask : DefaultTask() {
         val builder = JarSigner.Builder(keyStoreEntry)
             .digestAlgorithm("SHA-256")
             .signatureAlgorithm("SHA256withRSA")
-            .signerName("DEXBUNDLE")
+            .signerName("EXTERA")
 
         val urls = tsaUrls.get()
 
