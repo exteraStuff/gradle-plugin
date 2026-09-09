@@ -184,6 +184,7 @@ abstract class ExteraPlugin : Plugin<Project> {
                                 "Plugin-Version" to version.get(),
                                 "Plugin-Min-Client-Version" to minClientVersion.get(),
                                 "Plugin-Class" to entryClass.get(),
+                                "Plugin-Update-Sources" to updateSources.get().joinEntries("="),
                             )
                         }
                     }

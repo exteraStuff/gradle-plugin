@@ -1,5 +1,6 @@
-package io.github.exterastuff.gradle.plugin.extensions
+package io.github.exterastuff.gradle.plugin.extensions.bundle
 
+import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.Property
 
 abstract class ManifestExtension {
@@ -26,4 +27,11 @@ abstract class ManifestExtension {
      * Example: `"ru.n08i40k.streaks.Plugin"`
      */
     abstract val entryClass: Property<String>
+
+    /**
+     * Places the client looks for a newer build, as source name to url.
+     *
+     * Example: `mapOf("github" to "https://github.com/exteraStuff/streaks/releases")`
+     */
+    abstract val updateSources: MapProperty<String, String>
 }

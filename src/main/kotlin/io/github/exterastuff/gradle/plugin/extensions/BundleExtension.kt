@@ -1,5 +1,6 @@
 package io.github.exterastuff.gradle.plugin.extensions
 
+import io.github.exterastuff.gradle.plugin.extensions.bundle.ManifestExtension
 import io.github.exterastuff.gradle.plugin.extensions.bundle.SigningExtension
 import org.gradle.api.Action
 import org.gradle.api.tasks.Nested
