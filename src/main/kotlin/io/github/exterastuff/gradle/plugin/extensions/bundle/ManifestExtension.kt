@@ -2,7 +2,7 @@ package io.github.exterastuff.gradle.plugin.extensions
 
 import org.gradle.api.provider.Property
 
-abstract class PluginManifestExtension {
+abstract class ManifestExtension {
     /**
      * Plugin metadata.
      */

@@ -7,9 +7,9 @@
 
 Gradle-плагин для сборки плагинов exteraGram, написанных на Kotlin. Берёт обычный
 Android-library модуль, уводит зависимости в свои пакеты, прогоняет всё через R8 и
-отдаёт `classes.dex`. Если задан блок `manifest`, dex дополнительно заворачивается
+отдаёт `classes.dex`. Если задан блок `bundle`, dex дополнительно заворачивается
 в jar, в манифесте которого лежат метаданные плагина: `Plugin-Id`, `Plugin-Class`,
-версия, минимальная версия клиента.
+версия, минимальная версия клиента. Jar можно сразу подписать ключом из keystore.
 
 ## Подключение
 
@@ -71,15 +71,30 @@ extera {
         minSdk = 26
     }
 
-    manifest {
-        id = "my-plugin"
-        name = "My Plugin"
-        description = ":)"
-        author = "@username"
-        version = "1.0.0"
+    // optional
+    bundle {
+        manifest {
+            id = "my-plugin"
+            name = "My Plugin"
+            description = ":)"
+            icon = "someIconPack/10"
+            author = "@username"
+            version = "1.0.0"
 
-        minClientVersion = "12.1.1"
-        entryClass = "com.example.myplugin.Plugin"
+            minClientVersion = "12.1.1"
+            entryClass = "com.example.myplugin.Plugin"
+        }
+
+        // optional
+        signing {
+            release {
+                keyStore {
+                    path = file("keystore.p12")
+                    alias = "my-plugin"
+                    storePassword = providers.environmentVariable("KEYSTORE_PASSWORD").get()
+                }
+            }
+        }
     }
 }
 ```
@@ -109,20 +124,45 @@ extera {
 | `version`       | `9.4.17`          | Версия R8, которой собирается dex   |
 | `minSdk`        | `minSdk` варианта | Минимальный API level для dex       |
 
-### `manifest`
+### `bundle`
 
 Блок необязателен. Без него плагин собирает только dex, а задачи
 `packagePluginJar*` не создаются.
+
+#### `manifest`
 
 | Свойство           | По умолчанию | Что делает                                            |
 |--------------------|--------------|-------------------------------------------------------|
 | `id`               | —            | Имя jar-файла и `Plugin-Id` в манифесте               |
 | `name`             | —            | Отображаемое имя                                      |
 | `description`      | —            | Описание                                              |
+| `icon`             | —            | Эмодзи-иконка плагина                                 |
 | `author`           | —            | Автор                                                 |
 | `version`          | —            | Версия плагина, попадает и в имя jar                  |
 | `minClientVersion` | —            | Минимальная версия exteraGram, например `"12.1.1"`    |
 | `entryClass`       | —            | Полное имя класса, с которого клиент запускает плагин |
+
+#### `signing`
+
+Внутри два блока — `debug` и `release`, по одному на вариант сборки. Задача
+`signPluginJar*` создаётся только для того варианта, чей блок описан.
+
+| Свойство   | По умолчанию                                                      | Что делает                                       |
+|------------|-------------------------------------------------------------------|--------------------------------------------------|
+| `keyStore` | —                                                                 | Ключ, которым подписывается jar                  |
+| `tsaUrls`  | `debug` — пусто; `release` — DigiCert, Sectigo, `rfc3161.ai.moda` | Серверы штампов времени, перебираются по порядку |
+
+Если `tsaUrls` пуст, jar подписывается без штампа времени. Если список задан, но
+ни один сервер не ответил, задача падает.
+
+Поля `keyStore`:
+
+| Свойство        | По умолчанию    | Что делает                     |
+|-----------------|-----------------|--------------------------------|
+| `path`          | —               | Файл keystore                  |
+| `alias`         | —               | Алиас ключа внутри keystore    |
+| `storePassword` | —               | Пароль keystore                |
+| `keyPassword`   | `storePassword` | Пароль ключа, если отличается  |
 
 ### Выходные каталоги
 
@@ -139,12 +179,20 @@ extera {
 ./gradlew buildDex             # оба варианта
 ```
 
-С заданным блоком `manifest` доступна ещё и упаковка в jar:
+С заданным блоком `bundle` доступна ещё и упаковка в jar:
 
 ```sh
 ./gradlew packagePluginJarRelease   # build/outputs/jar/<id>-<version>.jar
 ./gradlew packagePluginJarDebug     # build/outputs/jar/<id>-<version>-debug.jar
 ./gradlew packagePluginJar          # оба варианта
+```
+
+А с описанным `signing` — подпись собранного jar:
+
+```sh
+./gradlew signPluginJarRelease      # build/outputs/jar/<id>-<version>-signed.jar
+./gradlew signPluginJarDebug        # build/outputs/jar/<id>-<version>-debug-signed.jar
+./gradlew signPluginJar             # все описанные варианты
 ```
 
 Debug-вариант R8 собирает в режиме `DEBUG`: часть оптимизаций отключена, сборка
@@ -161,3 +209,5 @@ Debug-вариант R8 собирает в режиме `DEBUG`: часть о�
 3. **R8.** Fat jar идёт на вход, почищенный `Telegram.jar` и `compileOnly`-зависимости — в
    classpath, `android.jar` — в library. На выходе dex.
 4. **Упаковка.** Dex кладётся в jar, метаданные плагина пишутся в манифест.
+5. **Подпись.** Jar подписывается ключом из keystore алгоритмом `SHA256withRSA`;
+   штамп времени берётся у первого ответившего TSA из списка.

@@ -5,7 +5,7 @@ import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Nested
 
-abstract class ExteraPluginExtension {
+abstract class ExteraExtension {
     @get:Nested
     abstract val telegram: TelegramExtension
 
@@ -16,9 +16,9 @@ abstract class ExteraPluginExtension {
     abstract val r8: R8Extension
 
     @get:Nested
-    abstract val manifest: PluginManifestExtension
+    abstract val bundle: BundleExtension
 
-    internal abstract val manifestConfigured: Property<Boolean>
+    internal abstract val bundleConfigured: Property<Boolean>
 
     /**
      * Directory the dex is written to.
@@ -31,7 +31,7 @@ abstract class ExteraPluginExtension {
     abstract val jarOutputDir: DirectoryProperty
 
     init {
-        manifestConfigured.convention(false)
+        bundleConfigured.convention(false)
     }
 
     fun telegram(action: Action<in TelegramExtension>) =
@@ -43,8 +43,8 @@ abstract class ExteraPluginExtension {
     fun r8(action: Action<in R8Extension>) =
         action.execute(r8)
 
-    fun manifest(action: Action<in PluginManifestExtension>) {
-        manifestConfigured.set(true)
-        action.execute(manifest)
+    fun bundle(action: Action<in BundleExtension>) {
+        bundleConfigured.set(true)
+        action.execute(bundle)
     }
 }

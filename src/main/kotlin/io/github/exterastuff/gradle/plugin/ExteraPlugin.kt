@@ -2,9 +2,10 @@ package io.github.exterastuff.gradle.plugin
 
 import com.android.build.api.variant.LibraryAndroidComponentsExtension
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
-import io.github.exterastuff.gradle.plugin.extensions.ExteraPluginExtension
+import io.github.exterastuff.gradle.plugin.extensions.ExteraExtension
 import io.github.exterastuff.gradle.plugin.tasks.BuildDexTask
 import io.github.exterastuff.gradle.plugin.tasks.ProcessTelegramJarTask
+import io.github.exterastuff.gradle.plugin.tasks.SignJarTask
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.attributes.Attribute
@@ -32,7 +33,7 @@ abstract class ExteraPlugin : Plugin<Project> {
     }
 
     override fun apply(target: Project) {
-        val extension = target.extensions.create<ExteraPluginExtension>(EXTENSION_NAME)
+        val extension = target.extensions.create<ExteraExtension>(EXTENSION_NAME)
             .apply {
                 dexOutputDir.convention(target.layout.buildDirectory.dir("outputs/dex"))
                 jarOutputDir.convention(target.layout.buildDirectory.dir("outputs/jar"))
@@ -42,7 +43,7 @@ abstract class ExteraPlugin : Plugin<Project> {
             .withPlugin(ANDROID_LIBRARY_PLUGIN) { target.configureExtension(extension) }
     }
 
-    private fun Project.configureExtension(extension: ExteraPluginExtension) {
+    private fun Project.configureExtension(extension: ExteraExtension) {
         val r8 = configurations.resolvable(R8_CONFIGURATION)
 
         // use specified version of r8 in project
@@ -68,12 +69,21 @@ abstract class ExteraPlugin : Plugin<Project> {
         }
 
         project.afterEvaluate {
-            if (!extension.manifestConfigured.get())
+            if (!extension.bundleConfigured.get())
                 return@afterEvaluate
 
             tasks.register("packagePluginJar") {
                 group = TASK_GROUP
                 description = "Packages every variant into a plugin jar"
+            }
+
+            if (!extension.bundle.signing.debugConfigured.get()
+                && !extension.bundle.signing.releaseConfigured.get()
+            ) return@afterEvaluate
+
+            tasks.register("signPluginJar") {
+                group = TASK_GROUP
+                description = "Signs every variant of a plugin jar"
             }
         }
 
@@ -146,7 +156,7 @@ abstract class ExteraPlugin : Plugin<Project> {
             buildDexAll.configure { dependsOn(buildDexVariant) }
 
             project.afterEvaluate {
-                if (!extension.manifestConfigured.get())
+                if (!extension.bundleConfigured.get())
                     return@afterEvaluate
 
                 val packageJarVariant = tasks.register<Jar>("packagePluginJar$variantTitle") {
@@ -154,8 +164,8 @@ abstract class ExteraPlugin : Plugin<Project> {
                     description = "Packages the $variantName dex into a plugin jar"
 
                     destinationDirectory.set(extension.jarOutputDir)
-                    archiveBaseName.set(extension.manifest.id)
-                    archiveVersion.set(extension.manifest.version)
+                    archiveBaseName.set(extension.bundle.manifest.id)
+                    archiveVersion.set(extension.bundle.manifest.version)
                     archiveClassifier.set(if (isRelease) "" else variantName)
 
                     isPreserveFileTimestamps = true
@@ -164,7 +174,7 @@ abstract class ExteraPlugin : Plugin<Project> {
                     from(buildDexVariant.flatMap { it.outputDir })
 
                     manifest {
-                        extension.manifest.apply {
+                        extension.bundle.manifest.apply {
                             attributes(
                                 "Plugin-Id" to id.get(),
                                 "Plugin-Name" to name.get(),
@@ -181,6 +191,47 @@ abstract class ExteraPlugin : Plugin<Project> {
 
                 tasks.getByName("packagePluginJar")
                     .dependsOn(packageJarVariant)
+
+                if ((!isRelease && !extension.bundle.signing.debugConfigured.get())
+                    || (isRelease && !extension.bundle.signing.releaseConfigured.get())
+                ) return@afterEvaluate
+
+                val signJarVariant = tasks.register<SignJarTask>("signPluginJar$variantTitle") {
+                    group = TASK_GROUP
+                    description = "Signs the $variantName plugin jar"
+
+                    val archiveFile = packageJarVariant.flatMap { it.archiveFile }
+
+                    unsignedJar.set(archiveFile)
+
+                    signedJar.set(extension.jarOutputDir.map {
+                        with(extension.bundle.manifest) {
+                            val sb = StringBuilder("${id.get()}-${version.get()}")
+
+                            if (!isRelease)
+                                sb.append("-debug")
+
+                            sb.append("-signed")
+                            sb.append(".jar")
+
+                            it.file(sb.toString())
+                        }
+                    })
+
+                    val variant = if (isRelease)
+                        extension.bundle.signing.release
+                    else
+                        extension.bundle.signing.debug
+
+                    keyStorePath.set(variant.keyStore.path)
+                    keyStoreAlias.set(variant.keyStore.alias)
+                    storePassword.set(variant.keyStore.storePassword)
+                    keyPassword.set(variant.keyStore.keyPassword)
+                    tsaUrls.set(variant.tsaUrls)
+                }
+
+                tasks.getByName("signPluginJar")
+                    .dependsOn(signJarVariant)
             }
         }
     }
