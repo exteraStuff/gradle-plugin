@@ -4,10 +4,19 @@ import com.android.build.api.variant.LibraryAndroidComponentsExtension
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import io.github.exterastuff.gradle.plugin.extensions.ExteraExtension
 import io.github.exterastuff.gradle.plugin.tasks.BuildDexTask
+import io.github.exterastuff.gradle.plugin.tasks.DexFatJarsTask
 import io.github.exterastuff.gradle.plugin.tasks.ProcessTelegramJarTask
 import io.github.exterastuff.gradle.plugin.tasks.SignJarTask
+import org.gradle.api.GradleException
+import org.gradle.api.NamedDomainObjectProvider
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.artifacts.DependencyScopeConfiguration
+import org.gradle.api.artifacts.ModuleDependency
+import org.gradle.api.artifacts.ResolvableConfiguration
+import org.gradle.api.artifacts.component.ComponentIdentifier
+import org.gradle.api.artifacts.result.ResolvedComponentResult
+import org.gradle.api.artifacts.result.ResolvedDependencyResult
 import org.gradle.api.attributes.Attribute
 import org.gradle.api.file.DuplicatesStrategy
 import org.gradle.api.file.FileCollection
@@ -30,6 +39,15 @@ abstract class ExteraPlugin : Plugin<Project> {
 
         const val ANDROID_LIBRARY_PLUGIN = "com.android.library"
         const val R8_CONFIGURATION = "exteraR8"
+
+        const val FAT_JAR_CONFIGURATION = "fatJar"
+        const val REQUIRED_FAT_JAR_CONFIGURATION = "requiredFatJar"
+        const val FAT_JARS_DIRECTORY = "fatjars"
+
+        val SEMVER = Regex("""\d+\.\d+\.\d+""")
+
+        val ARTIFACT_TYPE: Attribute<String> = Attribute.of("artifactType", String::class.java)
+        const val ANDROID_CLASSES_JAR = "android-classes-jar"
     }
 
     override fun apply(target: Project) {
@@ -50,6 +68,16 @@ abstract class ExteraPlugin : Plugin<Project> {
         dependencies.addProvider(
             R8_CONFIGURATION,
             extension.r8.version.map { "com.android.tools:r8:$it" })
+
+        val fatJarDependencies = fatJarDependencyScope(
+            FAT_JAR_CONFIGURATION,
+            "Dependencies shipped inside the plugin jar as separate dexed jars",
+        )
+
+        val requiredFatJarDependencies = fatJarDependencyScope(
+            REQUIRED_FAT_JAR_CONFIGURATION,
+            "Dependencies the plugin expects to already be installed on the client",
+        )
 
         val processTelegramJar = tasks.register<ProcessTelegramJarTask>("processTelegramJar") {
             group = TASK_GROUP
@@ -159,6 +187,28 @@ abstract class ExteraPlugin : Plugin<Project> {
                 if (!extension.bundleConfigured.get())
                     return@afterEvaluate
 
+                val fatJarSpecs = fatJarSpecsOf(variantName, fatJarDependencies)
+
+                val requiredFatJars =
+                    coordinatesOf(fatJarClasspathOf(variantName, requiredFatJarDependencies))
+
+                val dexFatJars = tasks.register<DexFatJarsTask>("dexFatJars$variantTitle") {
+                    group = TASK_GROUP
+                    description = "Converts the $variantName fatJar dependencies into dexed jars"
+
+                    fatJars.set(fatJarSpecs)
+
+                    bootClasspathJars.from(androidComponents.sdkComponents.bootClasspath)
+                    classpathJars.from(compileJars, processTelegramJar.flatMap { it.outputJar })
+                    r8Classpath.from(r8)
+
+                    minSdk.set(extension.r8.minSdk.orElse(variant.minSdk.apiLevel))
+                    release.set(isRelease)
+
+                    workDir.set(layout.buildDirectory.dir("intermediates/fat-jars-dex/$variantName"))
+                    outputDir.set(layout.buildDirectory.dir("intermediates/fat-jars/$variantName"))
+                }
+
                 val packageJarVariant = tasks.register<Jar>("packagePluginJar$variantTitle") {
                     group = TASK_GROUP
                     description = "Packages the $variantName dex into a plugin jar"
@@ -172,6 +222,7 @@ abstract class ExteraPlugin : Plugin<Project> {
                     isReproducibleFileOrder = true
 
                     from(buildDexVariant.flatMap { it.outputDir })
+                    from(dexFatJars.flatMap { it.outputDir }) { into(FAT_JARS_DIRECTORY) }
 
                     manifest {
                         extension.bundle.manifest.apply {
@@ -185,6 +236,12 @@ abstract class ExteraPlugin : Plugin<Project> {
                                 "Plugin-Min-Client-Version" to minClientVersion.get(),
                                 "Plugin-Class" to entryClass.get(),
                                 "Plugin-Update-Sources" to updateSources.get().joinEntries("="),
+                                "Plugin-Dependencies" to
+                                        requireSemver(dependencies.get()).joinEntries(":"),
+                                "Plugin-Fat-Jars" to fatJarSpecs.map { specs ->
+                                    specs.joinToString(", ") { it.coordinates.get() }
+                                },
+                                "Plugin-Required-Fat-Jars" to requiredFatJars.map { it.joinToString(", ") },
                             )
                         }
                     }
@@ -245,12 +302,137 @@ abstract class ExteraPlugin : Plugin<Project> {
         configurations.named(configurationName).map { configuration ->
             configuration.incoming
                 .artifactView {
-                    attributes.attribute(
-                        Attribute.of("artifactType", String::class.java),
-                        "android-classes-jar"
-                    )
+                    attributes.attribute(ARTIFACT_TYPE, ANDROID_CLASSES_JAR)
                     lenient(true)
                 }
                 .files
         }
+
+    private fun Project.fatJarDependencyScope(
+        name: String,
+        scopeDescription: String,
+    ): NamedDomainObjectProvider<DependencyScopeConfiguration> {
+        val scope = configurations.dependencyScope(name) {
+            description = scopeDescription
+
+            // The dependency ships whole, as a single artifact, and the plugin
+            // only compiles against it.
+            withDependencies {
+                forEach { dependency -> (dependency as? ModuleDependency)?.isTransitive = false }
+            }
+        }
+
+        configurations.named("compileOnly") { extendsFrom(scope.get()) }
+
+        return scope
+    }
+
+    private fun Project.fatJarClasspathOf(
+        variantName: String,
+        dependencies: NamedDomainObjectProvider<DependencyScopeConfiguration>,
+    ): NamedDomainObjectProvider<ResolvableConfiguration> {
+        val variantTitle = variantName.replaceFirstChar(Char::uppercase)
+
+        return configurations.resolvable("${dependencies.name}${variantTitle}Classpath") {
+            description =
+                "Resolves the ${dependencies.name} dependencies of the $variantName variant"
+
+            extendsFrom(dependencies.get())
+
+            val compileClasspath =
+                configurations.getByName("${variantName}CompileClasspath").attributes
+
+            for (key in compileClasspath.keySet()) {
+                @Suppress("UNCHECKED_CAST")
+                attributes.attribute(key as Attribute<Any>, compileClasspath.getAttribute(key)!!)
+            }
+        }
+    }
+
+    private fun coordinatesOf(
+        classpath: NamedDomainObjectProvider<ResolvableConfiguration>,
+    ): Provider<List<String>> =
+        classpath.flatMap { configuration ->
+            configuration.incoming.resolutionResult.rootComponent.map { root ->
+                coordinatesOf(root)
+                    .filterKeys { it != root.id }
+                    .values
+                    .sorted()
+            }
+        }
+
+    private fun Project.fatJarSpecsOf(
+        variantName: String,
+        fatJarDependencies: NamedDomainObjectProvider<DependencyScopeConfiguration>,
+    ): Provider<List<DexFatJarsTask.FatJarSpec>> {
+        val objectFactory = objects
+
+        return fatJarClasspathOf(variantName, fatJarDependencies).flatMap { configuration ->
+            val incoming = configuration.incoming
+
+            val artifacts = incoming
+                .artifactView {
+                    attributes.attribute(ARTIFACT_TYPE, ANDROID_CLASSES_JAR)
+                    lenient(true)
+                }
+                .artifacts
+                .resolvedArtifacts
+
+            incoming.resolutionResult.rootComponent.zip(artifacts) { root, resolved ->
+                val coordinates = coordinatesOf(root)
+
+                resolved
+                    .map { artifact ->
+                        val id = artifact.id.componentIdentifier
+
+                        val artifactCoordinates = coordinates[id]
+                            ?: throw GradleException("fatJar dependency $id has no maven coordinates")
+
+                        objectFactory.newInstance(DexFatJarsTask.FatJarSpec::class.java).apply {
+                            this.coordinates.set(artifactCoordinates)
+                            jar.set(artifact.file)
+                        }
+                    }
+                    .sortedBy { it.coordinates.get() }
+            }
+        }
+    }
+
+    private fun coordinatesOf(root: ResolvedComponentResult): Map<ComponentIdentifier, String> {
+        val coordinates = hashMapOf<ComponentIdentifier, String>()
+        val visited = hashSetOf<ComponentIdentifier>()
+
+        fun visit(component: ResolvedComponentResult) {
+            if (!visited.add(component.id))
+                return
+
+            component.moduleVersion?.let {
+                coordinates[component.id] = "${it.group}:${it.name}:${it.version}"
+            }
+
+            component.dependencies
+                .filterIsInstance<ResolvedDependencyResult>()
+                .forEach { visit(it.selected) }
+        }
+
+        visit(root)
+
+        return coordinates
+    }
+
+    private fun requireSemver(dependencies: Map<String, String>): Map<String, String> {
+        for ((id, version) in dependencies) {
+            if (!SEMVER.matches(version))
+                throw GradleException(
+                    "Version '$version' of plugin dependency '$id' is not a major.minor.patch version"
+                )
+        }
+
+        return dependencies
+    }
+
+    private fun Map<String, String>.joinEntries(separator: String): String =
+        toSortedMap()
+            .map { (key, value) -> "$key$separator$value" }
+            .joinToString(", ")
 }

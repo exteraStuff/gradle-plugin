@@ -34,4 +34,12 @@ abstract class ManifestExtension {
      * Example: `mapOf("github" to "https://github.com/exteraStuff/streaks/releases")`
      */
     abstract val updateSources: MapProperty<String, String>
+
+    /**
+     * Other plugins this one needs, as plugin id to the minimal supported version.
+     * Only a major bump of the dependency counts as incompatible.
+     *
+     * Example: `mapOf("streaks" to "1.2.0")`
+     */
+    abstract val dependencies: MapProperty<String, String>
 }
