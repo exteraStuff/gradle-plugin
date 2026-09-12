@@ -8,9 +8,7 @@ abstract class R8Extension {
         const val DEFAULT_R8_VERSION = "9.4.17"
     }
 
-    /**
-     * List of files with proguard rules.
-     */
+    /** List of files with proguard rules. */
     abstract val proguardFiles: ConfigurableFileCollection
 
     /**
@@ -21,8 +19,7 @@ abstract class R8Extension {
     abstract val version: Property<String>
 
     /**
-     * Minimal Android SDK version.
-     * Should be same as minSdk in `android` block.
+     * Minimal Android SDK version. Should be same as minSdk in `android` block.
      *
      * Example: `26`
      */

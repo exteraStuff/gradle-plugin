@@ -4,9 +4,7 @@ import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.Property
 
 abstract class ManifestExtension {
-    /**
-     * Plugin metadata.
-     */
+    /** Plugin metadata. */
     abstract val id: Property<String>
     abstract val name: Property<String>
     abstract val description: Property<String>
@@ -36,8 +34,8 @@ abstract class ManifestExtension {
     abstract val updateSources: MapProperty<String, String>
 
     /**
-     * Other plugins this one needs, as plugin id to the minimal supported version.
-     * Only a major bump of the dependency counts as incompatible.
+     * Other plugins this one needs, as plugin id to the minimal supported version. Only a major
+     * bump of the dependency counts as incompatible.
      *
      * Example: `mapOf("streaks" to "1.2.0")`
      */

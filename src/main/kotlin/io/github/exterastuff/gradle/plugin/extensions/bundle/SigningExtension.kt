@@ -6,13 +6,11 @@ import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Nested
 
 abstract class SigningExtension {
-    @get:Nested
-    abstract val debug: SigningVariantExtension
+    @get:Nested abstract val debug: SigningVariantExtension
 
     internal abstract val debugConfigured: Property<Boolean>
 
-    @get:Nested
-    abstract val release: SigningVariantExtension
+    @get:Nested abstract val release: SigningVariantExtension
 
     internal abstract val releaseConfigured: Property<Boolean>
 
@@ -24,7 +22,7 @@ abstract class SigningExtension {
             listOf(
                 "http://timestamp.digicert.com",
                 "http://timestamp.sectigo.com",
-                "http://rfc3161.ai.moda"
+                "http://rfc3161.ai.moda",
             )
         )
     }

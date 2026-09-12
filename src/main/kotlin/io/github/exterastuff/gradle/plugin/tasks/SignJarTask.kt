@@ -1,5 +1,8 @@
 package io.github.exterastuff.gradle.plugin.tasks
 
+import java.net.URI
+import java.security.KeyStore
+import java.util.zip.ZipFile
 import jdk.security.jarsigner.JarSigner
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
@@ -11,51 +14,41 @@ import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.TaskAction
-import java.net.URI
-import java.security.KeyStore
-import java.util.zip.ZipFile
 
 abstract class SignJarTask : DefaultTask() {
-    @get:InputFile
-    abstract val unsignedJar: RegularFileProperty
+    @get:InputFile abstract val unsignedJar: RegularFileProperty
 
-    @get:OutputFile
-    abstract val signedJar: RegularFileProperty
+    @get:OutputFile abstract val signedJar: RegularFileProperty
 
+    @get:InputFile abstract val keyStorePath: RegularFileProperty
 
-    @get:InputFile
-    abstract val keyStorePath: RegularFileProperty
+    @get:Input abstract val keyStoreAlias: Property<String>
 
-    @get:Input
-    abstract val keyStoreAlias: Property<String>
+    @get:Internal abstract val storePassword: Property<String>
 
-    @get:Internal
-    abstract val storePassword: Property<String>
+    @get:Internal abstract val keyPassword: Property<String>
 
-    @get:Internal
-    abstract val keyPassword: Property<String>
-
-
-    @get:Input
-    abstract val tsaUrls: ListProperty<String>
+    @get:Input abstract val tsaUrls: ListProperty<String>
 
     @TaskAction
     fun run() {
         val storePass = storePassword.get().toCharArray()
-        val keyPass = keyPassword.orNull?.toCharArray()
-            ?: storePass
+        val keyPass = keyPassword.orNull?.toCharArray() ?: storePass
 
         val keyStore = KeyStore.getInstance(keyStorePath.get().asFile, storePass)
 
         val keyStoreEntry =
             keyStore.getEntry(keyStoreAlias.get(), KeyStore.PasswordProtection(keyPass))
-                    as? KeyStore.PrivateKeyEntry
-                ?: throw GradleException("Alias '${keyStoreAlias.get()}' doesn't have private key entry")
+                as? KeyStore.PrivateKeyEntry
+                ?: throw GradleException(
+                    "Alias '${keyStoreAlias.get()}' doesn't have private key entry"
+                )
 
-        val builder = JarSigner.Builder(keyStoreEntry)
-            .digestAlgorithm("SHA-256")
-            .signatureAlgorithm("SHA256withRSA")
-            .signerName("EXTERA")
+        val builder =
+            JarSigner.Builder(keyStoreEntry)
+                .digestAlgorithm("SHA-256")
+                .signatureAlgorithm("SHA256withRSA")
+                .signerName("EXTERA")
 
         val urls = tsaUrls.get()
 
@@ -86,10 +79,9 @@ abstract class SignJarTask : DefaultTask() {
             val outputFile = signedJar.get().asFile
             outputFile.delete()
 
-            outputFile
-                .outputStream()
-                .buffered()
-                .use { output -> builder.build().sign(input, output) }
+            outputFile.outputStream().buffered().use { output ->
+                builder.build().sign(input, output)
+            }
         }
     }
 }

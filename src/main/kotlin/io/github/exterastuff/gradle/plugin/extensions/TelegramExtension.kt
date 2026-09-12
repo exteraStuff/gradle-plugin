@@ -5,11 +5,12 @@ import org.gradle.api.provider.ListProperty
 
 abstract class TelegramExtension {
     private companion object {
-        val DEFAULT_CONFLICTING_PACKAGES = listOf(
-            "kotlin/",
-            "kotlinx/coroutines/",
-            "com/android/tools/r8/",
-        )
+        val DEFAULT_CONFLICTING_PACKAGES =
+            listOf(
+                "kotlin/",
+                "kotlinx/coroutines/",
+                "com/android/tools/r8/",
+            )
     }
 
     /**
@@ -20,8 +21,8 @@ abstract class TelegramExtension {
     abstract val jar: RegularFileProperty
 
     /**
-     * List of package prefixes that will be excluded from classpath.
-     * Can be used to avoid classpath conflicts between plugin dependencies and client build.
+     * List of package prefixes that will be excluded from classpath. Can be used to avoid classpath
+     * conflicts between plugin dependencies and client build.
      *
      * Example: `listOf("kotlin", "com.android.tools.r8")`
      */

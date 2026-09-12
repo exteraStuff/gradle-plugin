@@ -7,15 +7,11 @@ import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.Internal
 
 abstract class KeyStoreExtension {
-    @get:InputFile
-    abstract val path: RegularFileProperty
+    @get:InputFile abstract val path: RegularFileProperty
 
-    @get:Input
-    abstract val alias: Property<String>
+    @get:Input abstract val alias: Property<String>
 
-    @get:Internal
-    abstract val storePassword: Property<String>
+    @get:Internal abstract val storePassword: Property<String>
 
-    @get:Internal
-    abstract val keyPassword: Property<String>
+    @get:Internal abstract val keyPassword: Property<String>
 }
