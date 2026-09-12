@@ -4,7 +4,8 @@ import com.android.build.api.variant.LibraryAndroidComponentsExtension
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import io.github.exterastuff.gradle.plugin.extensions.ExteraExtension
 import io.github.exterastuff.gradle.plugin.tasks.BuildDexTask
-import io.github.exterastuff.gradle.plugin.tasks.DexFatJarsTask
+import io.github.exterastuff.gradle.plugin.tasks.DexProvidedServicesTask
+import io.github.exterastuff.gradle.plugin.tasks.DexProvidedServicesTask.ProvidedServiceSpec
 import io.github.exterastuff.gradle.plugin.tasks.ProcessTelegramJarTask
 import io.github.exterastuff.gradle.plugin.tasks.SignJarTask
 import org.gradle.api.GradleException
@@ -39,9 +40,9 @@ abstract class ExteraPlugin : Plugin<Project> {
         const val ANDROID_LIBRARY_PLUGIN = "com.android.library"
         const val R8_CONFIGURATION = "exteraR8"
 
-        const val FAT_JAR_CONFIGURATION = "fatJar"
-        const val REQUIRED_FAT_JAR_CONFIGURATION = "requiredFatJar"
-        const val FAT_JARS_DIRECTORY = "fatjars"
+        const val PROVIDED_SERVICE_CONFIGURATION = "providedService"
+        const val REQUIRED_SERVICE_CONFIGURATION = "requiredService"
+        const val SERVICES_DIRECTORY = "services"
 
         val SEMVER = Regex("""\d+\.\d+\.\d+""")
 
@@ -70,16 +71,16 @@ abstract class ExteraPlugin : Plugin<Project> {
             extension.r8.version.map { "com.android.tools:r8:$it" },
         )
 
-        val fatJarDependencies =
-            fatJarDependencyScope(
-                FAT_JAR_CONFIGURATION,
-                "Dependencies shipped inside the plugin jar as separate dexed jars",
+        val providedServiceDependencies =
+            serviceDependencyScope(
+                PROVIDED_SERVICE_CONFIGURATION,
+                "Service definitions shipped inside the plugin jar as separate dexed jars",
             )
 
-        val requiredFatJarDependencies =
-            fatJarDependencyScope(
-                REQUIRED_FAT_JAR_CONFIGURATION,
-                "Dependencies the plugin expects to already be installed on the client",
+        val requiredServiceDependencies =
+            serviceDependencyScope(
+                REQUIRED_SERVICE_CONFIGURATION,
+                "Service definitions the plugin expects to already be present on the client",
             )
 
         val processTelegramJar =
@@ -207,18 +208,18 @@ abstract class ExteraPlugin : Plugin<Project> {
             project.afterEvaluate {
                 if (!extension.bundleConfigured.get()) return@afterEvaluate
 
-                val fatJarSpecs = fatJarSpecsOf(variantName, fatJarDependencies)
+                val providedServiceSpecs =
+                    providedServiceSpecsOf(variantName, providedServiceDependencies)
 
-                val requiredFatJars =
-                    coordinatesOf(fatJarClasspathOf(variantName, requiredFatJarDependencies))
+                val requiredServices =
+                    coordinatesOf(serviceClasspathOf(variantName, requiredServiceDependencies))
 
-                val dexFatJars =
-                    tasks.register<DexFatJarsTask>("dexFatJars$variantTitle") {
+                val dexProvidedServices =
+                    tasks.register<DexProvidedServicesTask>("dexProvidedServices$variantTitle") {
                         group = TASK_GROUP
-                        description =
-                            "Converts the $variantName fatJar dependencies into dexed jars"
+                        description = "Converts the $variantName provided services into dexed jars"
 
-                        fatJars.set(fatJarSpecs)
+                        providedServices.set(providedServiceSpecs)
 
                         bootClasspathJars.from(androidComponents.sdkComponents.bootClasspath)
                         classpathJars.from(compileJars, processTelegramJar.flatMap { it.outputJar })
@@ -228,10 +229,10 @@ abstract class ExteraPlugin : Plugin<Project> {
                         release.set(isRelease)
 
                         workDir.set(
-                            layout.buildDirectory.dir("intermediates/fat-jars-dex/$variantName")
+                            layout.buildDirectory.dir("intermediates/services-dex/$variantName")
                         )
                         outputDir.set(
-                            layout.buildDirectory.dir("intermediates/fat-jars/$variantName")
+                            layout.buildDirectory.dir("intermediates/services/$variantName")
                         )
                     }
 
@@ -249,7 +250,9 @@ abstract class ExteraPlugin : Plugin<Project> {
                         isReproducibleFileOrder = true
 
                         from(buildDexVariant.flatMap { it.outputDir })
-                        from(dexFatJars.flatMap { it.outputDir }) { into(FAT_JARS_DIRECTORY) }
+                        from(dexProvidedServices.flatMap { it.outputDir }) {
+                            into(SERVICES_DIRECTORY)
+                        }
 
                         manifest {
                             extension.bundle.manifest.apply {
@@ -265,12 +268,12 @@ abstract class ExteraPlugin : Plugin<Project> {
                                     "Plugin-Update-Sources" to updateSources.get().joinEntries("="),
                                     "Plugin-Dependencies" to
                                         requireSemver(dependencies.get()).joinEntries(":"),
-                                    "Plugin-Fat-Jars" to
-                                        fatJarSpecs.map { specs ->
+                                    "Plugin-Provided-Services" to
+                                        providedServiceSpecs.map { specs ->
                                             specs.joinToString(", ") { it.coordinates.get() }
                                         },
-                                    "Plugin-Required-Fat-Jars" to
-                                        requiredFatJars.map { it.joinToString(", ") },
+                                    "Plugin-Required-Services" to
+                                        requiredServices.map { it.joinToString(", ") },
                                 )
                             }
                         }
@@ -338,7 +341,7 @@ abstract class ExteraPlugin : Plugin<Project> {
                 .files
         }
 
-    private fun Project.fatJarDependencyScope(
+    private fun Project.serviceDependencyScope(
         name: String,
         scopeDescription: String,
     ): NamedDomainObjectProvider<DependencyScopeConfiguration> {
@@ -346,7 +349,7 @@ abstract class ExteraPlugin : Plugin<Project> {
             configurations.dependencyScope(name) {
                 description = scopeDescription
 
-                // The dependency ships whole, as a single artifact, and the plugin
+                // The service ships whole, as a single artifact, and the plugin
                 // only compiles against it.
                 withDependencies {
                     forEach { dependency ->
@@ -360,7 +363,7 @@ abstract class ExteraPlugin : Plugin<Project> {
         return scope
     }
 
-    private fun Project.fatJarClasspathOf(
+    private fun Project.serviceClasspathOf(
         variantName: String,
         dependencies: NamedDomainObjectProvider<DependencyScopeConfiguration>,
     ): NamedDomainObjectProvider<ResolvableConfiguration> {
@@ -368,7 +371,7 @@ abstract class ExteraPlugin : Plugin<Project> {
 
         return configurations.resolvable("${dependencies.name}${variantTitle}Classpath") {
             description =
-                "Resolves the ${dependencies.name} dependencies of the $variantName variant"
+                "Resolves the ${dependencies.name} definitions of the $variantName variant"
 
             extendsFrom(dependencies.get())
 
@@ -390,13 +393,13 @@ abstract class ExteraPlugin : Plugin<Project> {
         }
     }
 
-    private fun Project.fatJarSpecsOf(
+    private fun Project.providedServiceSpecsOf(
         variantName: String,
-        fatJarDependencies: NamedDomainObjectProvider<DependencyScopeConfiguration>,
-    ): Provider<List<DexFatJarsTask.FatJarSpec>> {
+        dependencies: NamedDomainObjectProvider<DependencyScopeConfiguration>,
+    ): Provider<List<ProvidedServiceSpec>> {
         val objectFactory = objects
 
-        return fatJarClasspathOf(variantName, fatJarDependencies).flatMap { configuration ->
+        return serviceClasspathOf(variantName, dependencies).flatMap { configuration ->
             val incoming = configuration.incoming
 
             val artifacts =
@@ -418,10 +421,10 @@ abstract class ExteraPlugin : Plugin<Project> {
                         val artifactCoordinates =
                             coordinates[id]
                                 ?: throw GradleException(
-                                    "fatJar dependency $id has no maven coordinates"
+                                    "providedService dependency $id has no maven coordinates"
                                 )
 
-                        objectFactory.newInstance(DexFatJarsTask.FatJarSpec::class.java).apply {
+                        objectFactory.newInstance(ProvidedServiceSpec::class.java).apply {
                             this.coordinates.set(artifactCoordinates)
                             jar.set(artifact.file)
                         }

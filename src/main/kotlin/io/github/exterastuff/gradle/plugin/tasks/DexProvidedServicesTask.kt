@@ -18,30 +18,30 @@ import org.gradle.api.tasks.TaskAction
 import org.gradle.workers.WorkerExecutor
 
 @CacheableTask
-abstract class DexFatJarsTask : DefaultTask() {
+abstract class DexProvidedServicesTask : DefaultTask() {
     companion object {
-        /** Name a dependency takes inside the plugin jar, without the extension. */
-        internal fun fatJarBaseName(coordinates: String): String {
+        /** Name a service takes inside the plugin jar, without the extension. */
+        internal fun serviceBaseName(coordinates: String): String {
             val (group, artifact, version) = coordinates.split(':')
             return "$group.$artifact-$version"
         }
     }
 
-    /** A single `fatJar` dependency. */
-    abstract class FatJarSpec {
-        /** Maven coordinates of the dependency, `group:artifact:version`. */
+    /** A single `providedService` dependency. */
+    abstract class ProvidedServiceSpec {
+        /** Maven coordinates of the service, `group:artifact:version`. */
         @get:Input abstract val coordinates: Property<String>
 
-        /** Jar of the dependency, as it comes from the resolved classpath. */
+        /** Jar of the service, as it comes from the resolved classpath. */
         @get:Classpath abstract val jar: RegularFileProperty
     }
 
-    @get:Nested abstract val fatJars: ListProperty<FatJarSpec>
+    @get:Nested abstract val providedServices: ListProperty<ProvidedServiceSpec>
 
     /** Libraries that available on every device. */
     @get:Classpath abstract val bootClasspathJars: ConfigurableFileCollection
 
-    /** Libraries the dependencies compile against, needed to desugar them. */
+    /** Libraries the services compile against, needed to desugar them. */
     @get:Classpath abstract val classpathJars: ConfigurableFileCollection
 
     /** R8 and its dependencies. Will be loaded into an isolated classloader. */
@@ -56,7 +56,7 @@ abstract class DexFatJarsTask : DefaultTask() {
     /** Directory the raw dex files are written to before packing. */
     @get:LocalState abstract val workDir: DirectoryProperty
 
-    /** Directory holding one dexed jar per dependency. */
+    /** Directory holding one dexed jar per service. */
     @get:OutputDirectory abstract val outputDir: DirectoryProperty
 
     @get:Inject abstract val workers: WorkerExecutor
@@ -69,10 +69,10 @@ abstract class DexFatJarsTask : DefaultTask() {
                 mkdirs()
             }
 
-        val specs = fatJars.get()
+        val specs = providedServices.get()
 
         if (specs.isEmpty()) {
-            logger.info("no fatJar dependencies declared")
+            logger.info("no providedService dependencies declared")
             return
         }
 
@@ -81,15 +81,15 @@ abstract class DexFatJarsTask : DefaultTask() {
 
         for (spec in specs) {
             val specCoordinates = spec.coordinates.get()
-            val baseName = fatJarBaseName(specCoordinates)
+            val baseName = serviceBaseName(specCoordinates)
 
             queue.submit(D8WorkAction::class.java) {
                 coordinates.set(specCoordinates)
                 inputJar.set(spec.jar)
-                bootClasspathJars.from(this@DexFatJarsTask.bootClasspathJars)
-                classpathJars.from(this@DexFatJarsTask.classpathJars)
-                minSdk.set(this@DexFatJarsTask.minSdk)
-                release.set(this@DexFatJarsTask.release)
+                bootClasspathJars.from(this@DexProvidedServicesTask.bootClasspathJars)
+                classpathJars.from(this@DexProvidedServicesTask.classpathJars)
+                minSdk.set(this@DexProvidedServicesTask.minSdk)
+                release.set(this@DexProvidedServicesTask.release)
                 workDir.set(work.resolve(baseName))
                 outputJar.set(output.resolve("$baseName.jar"))
             }

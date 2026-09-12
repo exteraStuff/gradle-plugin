@@ -127,8 +127,8 @@ abstract class D8WorkAction : WorkAction<D8Parameters> {
         val manifest =
             Manifest().apply {
                 mainAttributes[Attributes.Name.MANIFEST_VERSION] = "1.0"
-                mainAttributes.putValue("Fat-Jar-Id", coordinates.substringBeforeLast(':'))
-                mainAttributes.putValue("Fat-Jar-Version", coordinates.substringAfterLast(':'))
+                mainAttributes.putValue("Service-Id", coordinates.substringBeforeLast(':'))
+                mainAttributes.putValue("Service-Version", coordinates.substringAfterLast(':'))
             }
 
         return ByteArrayOutputStream().apply { use(manifest::write) }.toByteArray()
