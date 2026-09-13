@@ -1,5 +1,6 @@
 plugins {
     `kotlin-dsl`
+    id("com.gradle.plugin-publish") version "2.2.1"
 }
 
 group = "io.github.exterastuff"
@@ -28,8 +29,31 @@ configurations.compileClasspath {
 }
 
 gradlePlugin {
+    website = "https://github.com/exteraStuff/gradle-plugin"
+    vcsUrl = "https://github.com/exteraStuff/gradle-plugin.git"
+
     plugins.create("extera") {
         id = "io.github.exterastuff.gradle.plugin"
         implementationClass = "io.github.exterastuff.gradle.plugin.ExteraPlugin"
+
+        displayName = "exteraGram plugin builder"
+        description =
+            "Собирает Android-library модуль в плагин exteraGram: уводит зависимости " +
+                "в свои пакеты, прогоняет через R8 и упаковывает dex в подписанный jar " +
+                "с метаданными плагина."
+        tags = listOf("android", "exteragram", "telegram", "r8", "dex")
+    }
+}
+
+publishing {
+    publications.withType<MavenPublication>().configureEach {
+        pom {
+            licenses {
+                license {
+                    name = "MIT License"
+                    url = "https://github.com/exteraStuff/gradle-plugin/blob/master/LICENSE"
+                }
+            }
+        }
     }
 }
