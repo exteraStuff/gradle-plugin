@@ -103,10 +103,10 @@ extera {
 
 ### `telegram`
 
-| Property              | Default                                                   | Description                                           |
-|-----------------------|-----------------------------------------------------------|-------------------------------------------------------|
-| `jar`                 | —                                                         | Client classes from `dex2jar`                         |
-| `conflictingPackages` | `kotlin/`, `kotlinx/coroutines/`, `com/android/tools/r8/` | Package prefixes stripped from `Telegram.jar`         |
+| Property              | Default                                                   | Description                                   |
+|-----------------------|-----------------------------------------------------------|-----------------------------------------------|
+| `jar`                 | —                                                         | Client classes from `dex2jar`                 |
+| `conflictingPackages` | `kotlin/`, `kotlinx/coroutines/`, `com/android/tools/r8/` | Package prefixes stripped from `Telegram.jar` |
 
 ### `shadow`
 
@@ -120,11 +120,11 @@ leaves some of the classes where they were.
 
 ### `r8`
 
-| Property        | Default           | Description                          |
-|-----------------|-------------------|--------------------------------------|
-| `proguardFiles` | —                 | R8 rules                             |
-| `version`       | `9.4.17`          | R8 version used to build the dex     |
-| `minSdk`        | variant `minSdk`  | Minimum API level for the dex        |
+| Property        | Default          | Description                      |
+|-----------------|------------------|----------------------------------|
+| `proguardFiles` | —                | R8 rules                         |
+| `version`       | `9.4.17`         | R8 version used to build the dex |
+| `minSdk`        | variant `minSdk` | Minimum API level for the dex    |
 
 ### `bundle`
 
@@ -133,47 +133,47 @@ This block is optional. Without it the plugin only builds the dex, and the
 
 #### `manifest`
 
-| Property           | Default | Description                                               |
-|--------------------|---------|-----------------------------------------------------------|
-| `id`               | —       | Jar file name and `Plugin-Id` in the manifest             |
-| `name`             | —       | Display name                                              |
-| `description`      | —       | Description                                               |
-| `icon`             | —       | Plugin emoji icon                                         |
-| `author`           | —       | Author                                                    |
-| `version`          | —       | Plugin version, also used in the jar name                 |
-| `minClientVersion` | —       | Minimum exteraGram version, e.g. `"12.1.1"`               |
-| `entryClass`       | —       | Fully qualified name of the class the client starts from  |
-| `updateSources`    | empty   | Update sources: name → url                                |
-| `dependencies`     | empty   | Other plugins this one requires: id → version             |
+| Property           | Default | Description                                              |
+|--------------------|---------|----------------------------------------------------------|
+| `id`               | —       | Jar file name and `Plugin-Id` in the manifest            |
+| `name`             | —       | Display name                                             |
+| `description`      | —       | Description                                              |
+| `icon`             | —       | Plugin emoji icon                                        |
+| `author`           | —       | Author                                                   |
+| `version`          | —       | Plugin version, also used in the jar name                |
+| `minClientVersion` | —       | Minimum exteraGram version, e.g. `"12.1.1"`              |
+| `entryClass`       | —       | Fully qualified name of the class the client starts from |
+| `updateSources`    | empty   | Update sources: name → url                               |
+| `dependencies`     | empty   | Other plugins this one requires: id → version            |
 
 #### `signing`
 
 Contains two blocks, `debug` and `release`, one per build variant. The
 `signPluginJar*` task is created only for variants whose block is defined.
 
-| Property   | Default                                                            | Description                                 |
-|------------|--------------------------------------------------------------------|---------------------------------------------|
-| `keyStore` | —                                                                  | Key used to sign the jar                    |
-| `tsaUrls`  | `debug` — empty; `release` — DigiCert, Sectigo, `rfc3161.ai.moda`  | Timestamp servers, tried in order           |
+| Property   | Default                                                           | Description                       |
+|------------|-------------------------------------------------------------------|-----------------------------------|
+| `keyStore` | —                                                                 | Key used to sign the jar          |
+| `tsaUrls`  | `debug` — empty; `release` — DigiCert, Sectigo, `rfc3161.ai.moda` | Timestamp servers, tried in order |
 
 If `tsaUrls` is empty, the jar is signed without a timestamp. If the list is set but
 none of the servers respond, the task fails.
 
 `keyStore` fields:
 
-| Property        | Default         | Description                        |
-|-----------------|-----------------|------------------------------------|
-| `path`          | —               | Keystore file                      |
-| `alias`         | —               | Key alias inside the keystore      |
-| `storePassword` | —               | Keystore password                  |
-| `keyPassword`   | `storePassword` | Key password, if different         |
+| Property        | Default         | Description                   |
+|-----------------|-----------------|-------------------------------|
+| `path`          | —               | Keystore file                 |
+| `alias`         | —               | Key alias inside the keystore |
+| `storePassword` | —               | Keystore password             |
+| `keyPassword`   | `storePassword` | Key password, if different    |
 
 ### Output directories
 
-| Property       | Default             | Description               |
-|----------------|---------------------|---------------------------|
-| `dexOutputDir` | `build/outputs/dex` | Where the dex is written  |
-| `jarOutputDir` | `build/outputs/jar` | Where the jar is written  |
+| Property       | Default             | Description              |
+|----------------|---------------------|--------------------------|
+| `dexOutputDir` | `build/outputs/dex` | Where the dex is written |
+| `jarOutputDir` | `build/outputs/jar` | Where the jar is written |
 
 ## Services
 
