@@ -38,9 +38,9 @@ gradlePlugin {
 
         displayName = "exteraGram plugin builder"
         description =
-            "Собирает Android-library модуль в плагин exteraGram: уводит зависимости " +
-                "в свои пакеты, прогоняет через R8 и упаковывает dex в подписанный jar " +
-                "с метаданными плагина."
+            "Builds an Android library module into an exteraGram plugin: relocates " +
+                "dependencies into its own packages, runs everything through R8 and packs " +
+                "the dex into a signed jar with plugin metadata."
         tags = listOf("android", "exteragram", "telegram", "r8", "dex")
     }
 }

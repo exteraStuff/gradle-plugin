@@ -5,18 +5,18 @@
 [![AGP](https://img.shields.io/badge/AGP-9.x-3DDC84?logo=android&logoColor=white)](https://developer.android.com/build)
 [![R8](https://img.shields.io/badge/R8-9.4.17-blue)](https://r8.googlesource.com/r8)
 
-Gradle-плагин для сборки плагинов exteraGram, написанных на Kotlin. Берёт обычный
-Android-library модуль, уводит зависимости в свои пакеты, прогоняет всё через R8 и
-отдаёт `classes.dex`. Если задан блок `bundle`, dex дополнительно заворачивается
-в jar, в манифесте которого лежат метаданные плагина: `Plugin-Id`, `Plugin-Class`,
-версия, минимальная версия клиента. Определения сервисов, объявленные как
-`providedService`, едут в том же jar отдельными dexed-jar'ами. Jar можно сразу
-подписать ключом из keystore.
+A Gradle plugin for building exteraGram plugins written in Kotlin. It takes a regular
+Android library module, relocates its dependencies into their own packages, runs
+everything through R8 and produces `classes.dex`. If a `bundle` block is present, the
+dex is additionally wrapped into a jar whose manifest carries the plugin metadata:
+`Plugin-Id`, `Plugin-Class`, version, minimum client version. Service definitions
+declared as `providedService` are shipped inside the same jar as separate dexed jars.
+The jar can be signed right away with a key from a keystore.
 
-## Подключение
+## Setup
 
-Плагин нигде не опубликован.
-Репозиторий нужно склонировать и подключить как composite build.
+The plugin is not published anywhere.
+Clone the repository and include it as a composite build.
 
 ```sh
 git clone https://github.com/exteraStuff/gradle-plugin
@@ -39,15 +39,15 @@ plugins {
 }
 ```
 
-Что должно быть на месте:
+Requirements:
 
-- **JDK 21** — на нём собирается сам плагин.
-- **Android SDK** — путь в `local.properties`.
-- **`com.android.library` в том же модуле.** Плагин ждёт AGP и без него не создаёт
-  ни одной задачи.
-- **`Telegram.jar`** — классы клиента, вытащенные из APK через `dex2jar`.
+- **JDK 21** — used to build the plugin itself.
+- **Android SDK** — path set in `local.properties`.
+- **`com.android.library` in the same module.** The plugin expects AGP and creates
+  no tasks without it.
+- **`Telegram.jar`** — client classes extracted from the APK with `dex2jar`.
 
-## Настройка
+## Configuration
 
 ```kotlin
 extera {
@@ -61,8 +61,8 @@ extera {
         relocate("kotlin", "de.comahe.i18n4k")
 
         relocate("androidx") {
-            // Классы, которые приходят из хоста (compileOnly), должны остаться
-            // на своих местах — иначе плагин не найдёт их в рантайме.
+            // Classes provided by the host (compileOnly) must stay where they are,
+            // otherwise the plugin won't find them at runtime.
             exclude("androidx.recyclerview.**")
             exclude("androidx.lifecycle.**")
         }
@@ -103,89 +103,89 @@ extera {
 
 ### `telegram`
 
-| Свойство              | По умолчанию                                              | Что делает                                               |
-|-----------------------|-----------------------------------------------------------|----------------------------------------------------------|
-| `jar`                 | —                                                         | Классы клиента из `dex2jar`                              |
-| `conflictingPackages` | `kotlin/`, `kotlinx/coroutines/`, `com/android/tools/r8/` | Префиксы пакетов, которые выкидываются из `Telegram.jar` |
+| Property              | Default                                                   | Description                                           |
+|-----------------------|-----------------------------------------------------------|-------------------------------------------------------|
+| `jar`                 | —                                                         | Client classes from `dex2jar`                         |
+| `conflictingPackages` | `kotlin/`, `kotlinx/coroutines/`, `com/android/tools/r8/` | Package prefixes stripped from `Telegram.jar`         |
 
 ### `shadow`
 
-| Свойство        | По умолчанию | Что делает                                    |
-|-----------------|--------------|-----------------------------------------------|
-| `targetPackage` | —            | Пакет, под который уезжает всё релоцированное |
+| Property        | Default | Description                                   |
+|-----------------|---------|-----------------------------------------------|
+| `targetPackage` | —       | Package that all relocated classes move under |
 
-У `relocate` две формы: `relocate("kotlin", ...)` переносит
-перечисленные пакеты целиком, а `relocate("androidx") { exclude("androidx.lifecycle.**") }`
-оставляет часть классов там, где они были.
+`relocate` has two forms: `relocate("kotlin", ...)` moves the listed packages
+entirely, while `relocate("androidx") { exclude("androidx.lifecycle.**") }`
+leaves some of the classes where they were.
 
 ### `r8`
 
-| Свойство        | По умолчанию      | Что делает                        |
-|-----------------|-------------------|-----------------------------------|
-| `proguardFiles` | —                 | Правила для R8                    |
-| `version`       | `9.4.17`          | Версия R8, которой собирается dex |
-| `minSdk`        | `minSdk` варианта | Минимальный API level для dex     |
+| Property        | Default           | Description                          |
+|-----------------|-------------------|--------------------------------------|
+| `proguardFiles` | —                 | R8 rules                             |
+| `version`       | `9.4.17`          | R8 version used to build the dex     |
+| `minSdk`        | variant `minSdk`  | Minimum API level for the dex        |
 
 ### `bundle`
 
-Блок необязателен. Без него плагин собирает только dex, а задачи
-`packagePluginJar*` не создаются.
+This block is optional. Without it the plugin only builds the dex, and the
+`packagePluginJar*` tasks are not created.
 
 #### `manifest`
 
-| Свойство           | По умолчанию | Что делает                                            |
-|--------------------|--------------|-------------------------------------------------------|
-| `id`               | —            | Имя jar-файла и `Plugin-Id` в манифесте               |
-| `name`             | —            | Отображаемое имя                                      |
-| `description`      | —            | Описание                                              |
-| `icon`             | —            | Эмодзи-иконка плагина                                 |
-| `author`           | —            | Автор                                                 |
-| `version`          | —            | Версия плагина, попадает и в имя jar                  |
-| `minClientVersion` | —            | Минимальная версия exteraGram, например `"12.1.1"`    |
-| `entryClass`       | —            | Полное имя класса, с которого клиент запускает плагин |
-| `updateSources`    | пусто        | Источники обновлений: имя → url                       |
-| `dependencies`     | пусто        | Другие плагины, которые нужны этому: id → версия      |
+| Property           | Default | Description                                               |
+|--------------------|---------|-----------------------------------------------------------|
+| `id`               | —       | Jar file name and `Plugin-Id` in the manifest             |
+| `name`             | —       | Display name                                              |
+| `description`      | —       | Description                                               |
+| `icon`             | —       | Plugin emoji icon                                         |
+| `author`           | —       | Author                                                    |
+| `version`          | —       | Plugin version, also used in the jar name                 |
+| `minClientVersion` | —       | Minimum exteraGram version, e.g. `"12.1.1"`               |
+| `entryClass`       | —       | Fully qualified name of the class the client starts from  |
+| `updateSources`    | empty   | Update sources: name → url                                |
+| `dependencies`     | empty   | Other plugins this one requires: id → version             |
 
 #### `signing`
 
-Внутри два блока — `debug` и `release`, по одному на вариант сборки. Задача
-`signPluginJar*` создаётся только для того варианта, чей блок описан.
+Contains two blocks, `debug` and `release`, one per build variant. The
+`signPluginJar*` task is created only for variants whose block is defined.
 
-| Свойство   | По умолчанию                                                      | Что делает                                       |
-|------------|-------------------------------------------------------------------|--------------------------------------------------|
-| `keyStore` | —                                                                 | Ключ, которым подписывается jar                  |
-| `tsaUrls`  | `debug` — пусто; `release` — DigiCert, Sectigo, `rfc3161.ai.moda` | Серверы штампов времени, перебираются по порядку |
+| Property   | Default                                                            | Description                                 |
+|------------|--------------------------------------------------------------------|---------------------------------------------|
+| `keyStore` | —                                                                  | Key used to sign the jar                    |
+| `tsaUrls`  | `debug` — empty; `release` — DigiCert, Sectigo, `rfc3161.ai.moda`  | Timestamp servers, tried in order           |
 
-Если `tsaUrls` пуст, jar подписывается без штампа времени. Если список задан, но
-ни один сервер не ответил, задача падает.
+If `tsaUrls` is empty, the jar is signed without a timestamp. If the list is set but
+none of the servers respond, the task fails.
 
-Поля `keyStore`:
+`keyStore` fields:
 
-| Свойство        | По умолчанию    | Что делает                    |
-|-----------------|-----------------|-------------------------------|
-| `path`          | —               | Файл keystore                 |
-| `alias`         | —               | Алиас ключа внутри keystore   |
-| `storePassword` | —               | Пароль keystore               |
-| `keyPassword`   | `storePassword` | Пароль ключа, если отличается |
+| Property        | Default         | Description                        |
+|-----------------|-----------------|------------------------------------|
+| `path`          | —               | Keystore file                      |
+| `alias`         | —               | Key alias inside the keystore      |
+| `storePassword` | —               | Keystore password                  |
+| `keyPassword`   | `storePassword` | Key password, if different         |
 
-### Выходные каталоги
+### Output directories
 
-| Свойство       | По умолчанию        | Что делает          |
-|----------------|---------------------|---------------------|
-| `dexOutputDir` | `build/outputs/dex` | Куда складывать dex |
-| `jarOutputDir` | `build/outputs/jar` | Куда складывать jar |
+| Property       | Default             | Description               |
+|----------------|---------------------|---------------------------|
+| `dexOutputDir` | `build/outputs/dex` | Where the dex is written  |
+| `jarOutputDir` | `build/outputs/jar` | Where the jar is written  |
 
-## Сервисы
+## Services
 
-Плагин может отдавать другим плагинам определения сервиса — интерфейсы и типы, по
-которым к нему обращаются извне. Такое определение не растворяется в dex плагина, а
-едет внутри его jar отдельным dexed-jar, чтобы клиент мог загрузить его один раз и
-раздать всем, кто его требует.
+A plugin can expose service definitions to other plugins — interfaces and types
+through which it is accessed from the outside. Such a definition is not merged into
+the plugin's dex; it is shipped inside the plugin jar as a separate dexed jar, so the
+client can load it once and share it with everyone who requires it.
 
 ### `providedService`
 
-Конфигурация `providedService` в блоке `dependencies` объявляет определение сервиса,
-которое плагин предоставляет.
+The `providedService` configuration in the `dependencies` block declares a service
+definition that the plugin provides.
 
 ```kotlin
 dependencies {
@@ -193,26 +193,27 @@ dependencies {
 }
 ```
 
-Такая зависимость:
+Such a dependency:
 
-- добавляется в `compileOnly` — плагин компилируется против неё, shadow не тянет её
-  в fat jar, а R8 видит её только в classpath;
-- резолвится без транзитивов: артефакт считается самодостаточным;
-- прогоняется через D8 и ложится в `services/<group>.<artifact>-<version>.jar` внутри
-  jar плагина. Внутри вложенного jar лежат `classes.dex` и ресурсы исходного
-  артефакта, а его манифест несёт `Service-Id` и `Service-Version`;
-- перечисляется в манифесте плагина в `Plugin-Provided-Services`.
+- is added to `compileOnly` — the plugin compiles against it, shadow does not pull it
+  into the fat jar, and R8 sees it only on the classpath;
+- is resolved without transitives: the artifact is treated as self-contained;
+- is run through D8 and placed at `services/<group>.<artifact>-<version>.jar` inside
+  the plugin jar. The nested jar contains `classes.dex` and the resources of the
+  original artifact, and its manifest carries `Service-Id` and `Service-Version`;
+- is listed in the plugin manifest under `Plugin-Provided-Services`.
 
-Классы сервиса не релоцируются: их имена остаются теми же, что видит скомпилированный
-код плагина, — иначе вызывающая сторона не нашла бы их.
+Service classes are not relocated: their names stay the same as those seen by the
+compiled plugin code — otherwise callers would not be able to find them.
 
-Координаты берутся из результата резолва, поэтому `project(":api")` попадает в
-манифест как `group:name:version` подпроекта, а не как путь `:api`.
+Coordinates are taken from the resolution result, so `project(":api")` appears in the
+manifest as the subproject's `group:name:version`, not as the `:api` path.
 
 ### `requiredService`
 
-Та же конфигурация, но определение сервиса едет не в jar плагина, а лишь объявляется
-как требование — его должен предоставить клиент или другой уже установленный плагин.
+The same kind of configuration, but the service definition is not shipped in the
+plugin jar — it is only declared as a requirement that must be provided by the client
+or by another installed plugin.
 
 ```kotlin
 dependencies {
@@ -220,61 +221,63 @@ dependencies {
 }
 ```
 
-Ведёт себя так же — `compileOnly`, без транзитивов, координаты из резолва, — но
-через D8 не проходит и в `services/` не попадает. Перечисляется в
+It behaves the same way — `compileOnly`, no transitives, coordinates from resolution —
+but it is not run through D8 and does not end up in `services/`. It is listed under
 `Plugin-Required-Services`.
 
-### Атрибуты манифеста
+### Manifest attributes
 
-Оба списка отсортированы и разделены запятой:
+Both lists are sorted and comma-separated:
 
 ```
 Plugin-Provided-Services: io.github.exterastuff.demo:api:2.4.1
 Plugin-Required-Services: io.github.exterastuff.other:api:1.2.0
 ```
 
-Атрибуты пишутся всегда; пустое значение означает, что таких зависимостей нет.
+The attributes are always written; an empty value means there are no such
+dependencies.
 
-## Сборка
+## Building
 
 ```sh
 ./gradlew buildDexDebug        # build/outputs/dex/debug/classes.dex
 ./gradlew buildDexRelease      # build/outputs/dex/release/classes.dex
-./gradlew buildDex             # оба варианта
+./gradlew buildDex             # both variants
 ```
 
-С заданным блоком `bundle` доступна ещё и упаковка в jar:
+With a `bundle` block, jar packaging is also available:
 
 ```sh
 ./gradlew packagePluginJarRelease   # build/outputs/jar/<id>-<version>.jar
 ./gradlew packagePluginJarDebug     # build/outputs/jar/<id>-<version>-debug.jar
-./gradlew packagePluginJar          # оба варианта
+./gradlew packagePluginJar          # both variants
 ```
 
-А с описанным `signing` — подпись собранного jar:
+And with `signing` defined, the built jar can be signed:
 
 ```sh
 ./gradlew signPluginJarRelease      # build/outputs/jar/<id>-<version>-signed.jar
 ./gradlew signPluginJarDebug        # build/outputs/jar/<id>-<version>-debug-signed.jar
-./gradlew signPluginJar             # все описанные варианты
+./gradlew signPluginJar             # all defined variants
 ```
 
-Debug-вариант R8 собирает в режиме `DEBUG`: часть оптимизаций отключена, сборка
-быстрее, стектрейсы читаемее.
+The debug variant is built by R8 in `DEBUG` mode: some optimizations are disabled,
+the build is faster and stack traces are more readable.
 
-## Этапы сборки
+## Build pipeline
 
-1. **Чистка `Telegram.jar`.** ASM восстанавливает атрибуты `InnerClasses`, которые
-   ломает `dex2jar`, и выбрасывает пакеты из `conflictingPackages`, чтобы классы
-   клиента не спорили с зависимостями проекта.
-2. **Fat jar.** Скомпилированные классы и runtime-зависимости собираются в один jar
-   через shadow, пакеты из `relocate` уезжают под `targetPackage` — иначе они
-   столкнулись бы с такими же классами внутри самого клиента.
-3. **R8.** Fat jar идёт на вход, почищенный `Telegram.jar` и `compileOnly`-зависимости — в
-   classpath, `android.jar` — в library. На выходе dex.
-4. **Предоставляемые сервисы.** Каждый отдельно проходит через D8 и превращается в
-   jar, где вместо классов лежит `classes.dex`.
-5. **Упаковка.** Dex кладётся в jar, dexed-jar'ы — в каталог `services/`, метаданные
-   плагина пишутся в манифест.
-6. **Подпись.** Jar подписывается ключом из keystore алгоритмом `SHA256withRSA`;
-   штамп времени берётся у первого ответившего TSA из списка.
+1. **Cleaning `Telegram.jar`.** ASM restores the `InnerClasses` attributes broken by
+   `dex2jar` and strips the packages listed in `conflictingPackages`, so client
+   classes don't clash with the project's dependencies.
+2. **Fat jar.** Compiled classes and runtime dependencies are merged into a single jar
+   with shadow; packages from `relocate` are moved under `targetPackage` — otherwise
+   they would clash with identical classes inside the client itself.
+3. **R8.** The fat jar is the input, the cleaned `Telegram.jar` and `compileOnly`
+   dependencies go on the classpath, `android.jar` goes into the library. The output
+   is a dex.
+4. **Provided services.** Each one is run through D8 separately and turned into a jar
+   containing `classes.dex` instead of classes.
+5. **Packaging.** The dex is put into the jar, the dexed jars go into the `services/`
+   directory, and the plugin metadata is written to the manifest.
+6. **Signing.** The jar is signed with a key from the keystore using `SHA256withRSA`;
+   the timestamp is taken from the first TSA in the list that responds.
