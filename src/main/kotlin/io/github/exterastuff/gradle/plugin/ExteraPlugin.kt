@@ -208,8 +208,12 @@ abstract class ExteraPlugin : Plugin<Project> {
             project.afterEvaluate {
                 if (!extension.bundleConfigured.get()) return@afterEvaluate
 
-                val providedServiceSpecs =
-                    providedServiceSpecsOf(variantName, providedServiceDependencies)
+                val providedServicesClasspath =
+                    serviceClasspathOf(variantName, providedServiceDependencies)
+
+                val providedServiceSpecs = providedServiceSpecsOf(providedServicesClasspath)
+
+                val providedServiceCoordinates = coordinatesOf(providedServicesClasspath)
 
                 val requiredServices =
                     coordinatesOf(serviceClasspathOf(variantName, requiredServiceDependencies))
@@ -269,9 +273,7 @@ abstract class ExteraPlugin : Plugin<Project> {
                                     "Plugin-Dependencies" to
                                         requireSemver(dependencies.get()).joinEntries(":"),
                                     "Plugin-Provided-Services" to
-                                        providedServiceSpecs.map { specs ->
-                                            specs.joinToString(", ") { it.coordinates.get() }
-                                        },
+                                        providedServiceCoordinates.map { it.joinToString(", ") },
                                     "Plugin-Required-Services" to
                                         requiredServices.map { it.joinToString(", ") },
                                 )
@@ -394,12 +396,11 @@ abstract class ExteraPlugin : Plugin<Project> {
     }
 
     private fun Project.providedServiceSpecsOf(
-        variantName: String,
-        dependencies: NamedDomainObjectProvider<DependencyScopeConfiguration>,
+        classpath: NamedDomainObjectProvider<ResolvableConfiguration>
     ): Provider<List<ProvidedServiceSpec>> {
         val objectFactory = objects
 
-        return serviceClasspathOf(variantName, dependencies).flatMap { configuration ->
+        return classpath.flatMap { configuration ->
             val incoming = configuration.incoming
 
             val artifacts =
