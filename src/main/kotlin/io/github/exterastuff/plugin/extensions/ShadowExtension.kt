@@ -1,4 +1,4 @@
-package io.github.exterastuff.gradle.plugin.extensions
+package io.github.exterastuff.plugin.extensions
 
 import javax.inject.Inject
 import org.gradle.api.Action

@@ -1,4 +1,4 @@
-package io.github.exterastuff.gradle.plugin.extensions
+package io.github.exterastuff.plugin.extensions
 
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.ListProperty

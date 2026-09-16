@@ -1,6 +1,6 @@
-package io.github.exterastuff.gradle.plugin.tasks
+package io.github.exterastuff.plugin.tasks
 
-import io.github.exterastuff.gradle.plugin.actions.R8WorkAction
+import io.github.exterastuff.plugin.actions.R8WorkAction
 import javax.inject.Inject
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.ConfigurableFileCollection

@@ -33,8 +33,8 @@ gradlePlugin {
     vcsUrl = "https://github.com/exteraStuff/gradle-plugin.git"
 
     plugins.create("extera") {
-        id = "io.github.exterastuff.gradle.plugin"
-        implementationClass = "io.github.exterastuff.gradle.plugin.ExteraPlugin"
+        id = "io.github.exterastuff.plugin"
+        implementationClass = "io.github.exterastuff.plugin.ExteraPlugin"
 
         displayName = "exteraGram plugin builder"
         description =

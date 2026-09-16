@@ -1,13 +1,13 @@
-package io.github.exterastuff.gradle.plugin
+package io.github.exterastuff.plugin
 
 import com.android.build.api.variant.LibraryAndroidComponentsExtension
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
-import io.github.exterastuff.gradle.plugin.extensions.ExteraExtension
-import io.github.exterastuff.gradle.plugin.tasks.BuildDexTask
-import io.github.exterastuff.gradle.plugin.tasks.DexProvidedServicesTask
-import io.github.exterastuff.gradle.plugin.tasks.DexProvidedServicesTask.ProvidedServiceSpec
-import io.github.exterastuff.gradle.plugin.tasks.ProcessTelegramJarTask
-import io.github.exterastuff.gradle.plugin.tasks.SignJarTask
+import io.github.exterastuff.plugin.extensions.ExteraExtension
+import io.github.exterastuff.plugin.tasks.BuildDexTask
+import io.github.exterastuff.plugin.tasks.DexProvidedServicesTask
+import io.github.exterastuff.plugin.tasks.DexProvidedServicesTask.ProvidedServiceSpec
+import io.github.exterastuff.plugin.tasks.ProcessTelegramJarTask
+import io.github.exterastuff.plugin.tasks.SignJarTask
 import org.gradle.api.GradleException
 import org.gradle.api.NamedDomainObjectProvider
 import org.gradle.api.Plugin

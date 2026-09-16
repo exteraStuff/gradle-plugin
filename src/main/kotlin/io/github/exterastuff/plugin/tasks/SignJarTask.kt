@@ -1,4 +1,4 @@
-package io.github.exterastuff.gradle.plugin.tasks
+package io.github.exterastuff.plugin.tasks
 
 import java.net.URI
 import java.security.KeyStore

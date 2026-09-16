@@ -1,4 +1,4 @@
-package io.github.exterastuff.gradle.plugin.extensions.bundle
+package io.github.exterastuff.plugin.extensions.bundle
 
 import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.Property

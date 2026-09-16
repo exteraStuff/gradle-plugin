@@ -1,4 +1,4 @@
-package io.github.exterastuff.gradle.plugin.extensions.bundle.signing
+package io.github.exterastuff.plugin.extensions.bundle.signing
 
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.Property

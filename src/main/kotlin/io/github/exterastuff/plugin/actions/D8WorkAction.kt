@@ -1,4 +1,4 @@
-package io.github.exterastuff.gradle.plugin.actions
+package io.github.exterastuff.plugin.actions
 
 import com.android.tools.r8.CompilationMode
 import com.android.tools.r8.D8

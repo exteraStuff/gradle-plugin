@@ -35,7 +35,7 @@ pluginManagement {
 // build.gradle.kts
 plugins {
     id("com.android.library") version "9.0.1"
-    id("io.github.exterastuff.gradle.plugin")
+    id("io.github.exterastuff.plugin")
 }
 ```
 
