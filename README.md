@@ -264,6 +264,16 @@ And with `signing` defined, the built jar can be signed:
 The debug variant is built by R8 in `DEBUG` mode: some optimizations are disabled,
 the build is faster and stack traces are more readable.
 
+## Supported Gradle features
+
+| Feature             | Support                                                                                                                                                       |
+|---------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Configuration cache | Supported                                                                                                                                                     |
+| Build cache         | `processTelegramJar`, `shade*` and `dexProvidedServices*` are cacheable; `buildDex*`, `packagePluginJar*` and `signPluginJar*` rely on up-to-date checks only |
+| Parallel execution  | Supported                                                                                                                                                     |
+
+Checked on Gradle 9.7.1 with AGP 9.x.
+
 ## Build pipeline
 
 1. **Cleaning `Telegram.jar`.** ASM restores the `InnerClasses` attributes broken by
