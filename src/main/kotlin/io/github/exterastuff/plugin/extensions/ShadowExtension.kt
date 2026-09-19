@@ -7,7 +7,7 @@ import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
 
 abstract class ShadowExtension @Inject constructor(private val objects: ObjectFactory) {
-    abstract class RelocationSpec @Inject constructor(val pkg: String) {
+    abstract class RelocationSpec(val pkg: String) {
         abstract val excludes: ListProperty<String>
 
         fun exclude(vararg patterns: String) {
@@ -37,6 +37,6 @@ abstract class ShadowExtension @Inject constructor(private val objects: ObjectFa
      * sub-packages or classes in the provided package from relocation.
      */
     fun relocate(pkg: String, action: Action<RelocationSpec>) {
-        relocations.add(newSpec(pkg).apply { action.execute(this) })
+        relocations.add(newSpec(pkg).apply(action::execute))
     }
 }
