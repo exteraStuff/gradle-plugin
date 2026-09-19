@@ -3,6 +3,7 @@ package io.github.exterastuff.plugin
 import com.android.build.api.variant.LibraryAndroidComponentsExtension
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import io.github.exterastuff.plugin.extensions.ExteraExtension
+import io.github.exterastuff.plugin.extensions.bundle.ManifestExtension
 import io.github.exterastuff.plugin.tasks.BuildDexTask
 import io.github.exterastuff.plugin.tasks.DexProvidedServicesTask
 import io.github.exterastuff.plugin.tasks.DexProvidedServicesTask.ProvidedServiceSpec
@@ -277,6 +278,26 @@ abstract class ExteraPlugin : Plugin<Project> {
                                     "Plugin-Required-Services" to
                                         requiredServices.map { it.joinToString(", ") },
                                 )
+
+                                for (spec in dependencies.get()) {
+                                    val entries =
+                                        linkedMapOf<String, Any>(
+                                            "Dependency-Id" to spec.id,
+                                            "Dependency-Min-Version" to spec.requireMinVersion(),
+                                        )
+
+                                    val sources = spec.providerSources.get()
+
+                                    if (sources.isNotEmpty())
+                                        entries["Dependency-Provider-Sources"] =
+                                            sources.joinToString(", ")
+
+                                    spec.providerSha1.orNull?.let {
+                                        entries["Dependency-Provider-Sha1"] = it
+                                    }
+
+                                    attributes(entries, "provider/${ spec.id }")
+                                }
                             }
                         }
                     }
@@ -456,15 +477,26 @@ abstract class ExteraPlugin : Plugin<Project> {
         return coordinates
     }
 
-    private fun requireSemver(dependencies: Map<String, String>): Map<String, String> {
-        for ((id, version) in dependencies) {
+    private fun ManifestExtension.DependencySpec.requireMinVersion(): String =
+        minVersion.orNull ?: throw GradleException("Plugin dependency '$id' has no minVersion set")
+
+    private fun requireSemver(
+        dependencies: List<ManifestExtension.DependencySpec>
+    ): Map<String, String> {
+        val map = HashMap<String, String>()
+
+        for (spec in dependencies) {
+            val version = spec.requireMinVersion()
+
             if (!SEMVER.matches(version))
                 throw GradleException(
-                    "Version '$version' of plugin dependency '$id' is not a major.minor.patch version"
+                    "Version '$version' of plugin dependency '${spec.id}' is not a major.minor.patch version"
                 )
+
+            map[spec.id] = version
         }
 
-        return dependencies
+        return map
     }
 
     private fun Map<String, String>.joinEntries(separator: String): String =

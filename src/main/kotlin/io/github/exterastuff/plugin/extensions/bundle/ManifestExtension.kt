@@ -1,9 +1,37 @@
 package io.github.exterastuff.plugin.extensions.bundle
 
+import javax.inject.Inject
+import org.gradle.api.Action
+import org.gradle.api.model.ObjectFactory
+import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.Property
 
-abstract class ManifestExtension {
+abstract class ManifestExtension @Inject constructor(private val objects: ObjectFactory) {
+    /**
+     * Another plugin this one needs. Only a major bump of the dependency counts as
+     * incompatible.
+     */
+    abstract class DependencySpec(val id: String) {
+        /**
+         * Minimal supported version of the dependency, as `major.minor.patch`.
+         *
+         * Example: `"1.2.0"`
+         */
+        abstract val minVersion: Property<String>
+
+        /** Places the client can download the dependency from. */
+        abstract val providerSources: ListProperty<String>
+
+        /** SHA-1 of the jar served by `providerSources`. */
+        abstract val providerSha1: Property<String>
+
+        /** Adds a place the client can download the dependency from. */
+        fun providerSource(url: String) {
+            providerSources.add(url)
+        }
+    }
+
     /** Plugin metadata. */
     abstract val id: Property<String>
     abstract val name: Property<String>
@@ -33,11 +61,18 @@ abstract class ManifestExtension {
      */
     abstract val updateSources: MapProperty<String, String>
 
+    /** Other plugins this one needs, declared with [dependency]. */
+    abstract val dependencies: ListProperty<DependencySpec>
+
+    private fun newDependency(id: String): DependencySpec =
+        objects.newInstance(DependencySpec::class.java, id)
+
     /**
-     * Other plugins this one needs, as plugin id to the minimal supported version. Only a major
-     * bump of the dependency counts as incompatible.
+     * Declares a plugin this one needs.
      *
-     * Example: `mapOf("streaks" to "1.2.0")`
+     * Example: `dependency("streaks") { minVersion = "1.2.0" }`
      */
-    abstract val dependencies: MapProperty<String, String>
+    fun dependency(id: String, action: Action<in DependencySpec>) {
+        dependencies.add(newDependency(id).apply(action::execute))
+    }
 }

@@ -133,18 +133,39 @@ This block is optional. Without it the plugin only builds the dex, and the
 
 #### `manifest`
 
-| Property           | Default | Description                                              |
-|--------------------|---------|----------------------------------------------------------|
-| `id`               | —       | Jar file name and `Plugin-Id` in the manifest            |
-| `name`             | —       | Display name                                             |
-| `description`      | —       | Description                                              |
-| `icon`             | —       | Plugin emoji icon                                        |
-| `author`           | —       | Author                                                   |
-| `version`          | —       | Plugin version, also used in the jar name                |
-| `minClientVersion` | —       | Minimum exteraGram version, e.g. `"12.1.1"`              |
-| `entryClass`       | —       | Fully qualified name of the class the client starts from |
-| `updateSources`    | empty   | Update sources: name → url                               |
-| `dependencies`     | empty   | Other plugins this one requires: id → version            |
+| Property           | Default | Description                                                 |
+|--------------------|---------|-------------------------------------------------------------|
+| `id`               | —       | Jar file name and `Plugin-Id` in the manifest               |
+| `name`             | —       | Display name                                                |
+| `description`      | —       | Description                                                 |
+| `icon`             | —       | Plugin emoji icon                                           |
+| `author`           | —       | Author                                                      |
+| `version`          | —       | Plugin version, also used in the jar name                   |
+| `minClientVersion` | —       | Minimum exteraGram version, e.g. `"12.1.1"`                 |
+| `entryClass`       | —       | Fully qualified name of the class the client starts from    |
+| `updateSources`    | empty   | Update sources: name → url                                  |
+| `dependencies`     | empty   | Other plugins this one requires, declared with `dependency` |
+
+`dependency` declares a plugin the client must have before loading this one:
+
+```kotlin
+dependency("streaks") {
+    minVersion = "1.2.0"
+
+    // Do not use "latest" as hash will change after new release
+    providerSource("https://github.com/exteraStuff/streaks/releases/v1.2.0/download/streaks.jar")
+    providerSha1 = "da39a3ee5e6b4b0d3255bfef95601890afd80709"
+}
+
+```
+
+| Property          | Default | Description                                      |
+|-------------------|---------|--------------------------------------------------|
+| `minVersion`      | —       | Minimal supported version, `major.minor.patch`   |
+| `providerSources` | empty   | Urls the client can download the dependency from |
+| `providerSha1`    | —       | SHA-1 of the jar served by `providerSources`     |
+
+Only a major bump of the dependency counts as incompatible.
 
 #### `signing`
 
