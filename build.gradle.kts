@@ -20,6 +20,10 @@ dependencies {
     implementation("org.ow2.asm:asm:9.8")
 }
 
+kotlin {
+    explicitApi()
+}
+
 configurations.configureEach {
     resolutionStrategy.force("org.jetbrains.kotlin:kotlin-stdlib:2.2.0")
 }

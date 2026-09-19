@@ -6,6 +6,13 @@ import com.android.tools.r8.D8Command
 import com.android.tools.r8.Diagnostic
 import com.android.tools.r8.DiagnosticsHandler
 import com.android.tools.r8.OutputMode
+import org.gradle.api.file.ConfigurableFileCollection
+import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.file.RegularFileProperty
+import org.gradle.api.logging.Logging
+import org.gradle.api.provider.Property
+import org.gradle.workers.WorkAction
+import org.gradle.workers.WorkParameters
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.nio.file.Path
@@ -15,13 +22,6 @@ import java.util.zip.Deflater
 import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
 import java.util.zip.ZipOutputStream
-import org.gradle.api.file.ConfigurableFileCollection
-import org.gradle.api.file.DirectoryProperty
-import org.gradle.api.file.RegularFileProperty
-import org.gradle.api.logging.Logging
-import org.gradle.api.provider.Property
-import org.gradle.workers.WorkAction
-import org.gradle.workers.WorkParameters
 
 /** Timestamp written into every output entry. Used to keep output byte-identical. */
 private val ZIP_EPOCH = java.nio.file.attribute.FileTime.fromMillis(315_532_800_000L)
@@ -39,7 +39,7 @@ private val ZipEntry.isResource: Boolean
             name != "META-INF/MANIFEST.MF" &&
             !(name.startsWith("META-INF/") && SIGNATURE_SUFFIXES.any(name::endsWith))
 
-interface D8Parameters : WorkParameters {
+internal interface D8Parameters : WorkParameters {
     /** Maven coordinates of the dependency, `group:artifact:version`. */
     val coordinates: Property<String>
 
@@ -66,7 +66,7 @@ interface D8Parameters : WorkParameters {
 }
 
 /** Converts a single dependency jar into a jar that carries dex instead of classes. */
-abstract class D8WorkAction : WorkAction<D8Parameters> {
+internal abstract class D8WorkAction : WorkAction<D8Parameters> {
     private val logger = Logging.getLogger(D8WorkAction::class.java)
 
     override fun execute() {

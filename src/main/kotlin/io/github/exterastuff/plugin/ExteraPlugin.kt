@@ -33,7 +33,7 @@ import org.gradle.kotlin.dsl.register
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompileTool
 
 @Suppress("UnstableApiUsage")
-abstract class ExteraPlugin : Plugin<Project> {
+public abstract class ExteraPlugin : Plugin<Project> {
     private companion object {
         const val EXTENSION_NAME = "extera"
         const val TASK_GROUP = "extera"

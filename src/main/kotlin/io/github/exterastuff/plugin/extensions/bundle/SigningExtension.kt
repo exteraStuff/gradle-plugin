@@ -5,12 +5,12 @@ import org.gradle.api.Action
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Nested
 
-abstract class SigningExtension {
-    @get:Nested abstract val debug: SigningVariantExtension
+public abstract class SigningExtension {
+    @get:Nested public abstract val debug: SigningVariantExtension
 
     internal abstract val debugConfigured: Property<Boolean>
 
-    @get:Nested abstract val release: SigningVariantExtension
+    @get:Nested public abstract val release: SigningVariantExtension
 
     internal abstract val releaseConfigured: Property<Boolean>
 
@@ -27,12 +27,12 @@ abstract class SigningExtension {
         )
     }
 
-    fun debug(action: Action<in SigningVariantExtension>) {
+    public fun debug(action: Action<in SigningVariantExtension>) {
         debugConfigured.set(true)
         action.execute(debug)
     }
 
-    fun release(action: Action<in SigningVariantExtension>) {
+    public fun release(action: Action<in SigningVariantExtension>) {
         releaseConfigured.set(true)
         action.execute(release)
     }

@@ -5,12 +5,12 @@ import io.github.exterastuff.plugin.extensions.bundle.SigningExtension
 import org.gradle.api.Action
 import org.gradle.api.tasks.Nested
 
-abstract class BundleExtension {
-    @get:Nested abstract val manifest: ManifestExtension
+public abstract class BundleExtension {
+    @get:Nested public abstract val manifest: ManifestExtension
 
-    @get:Nested abstract val signing: SigningExtension
+    @get:Nested public abstract val signing: SigningExtension
 
-    fun manifest(action: Action<in ManifestExtension>) = action.execute(manifest)
+    public fun manifest(action: Action<in ManifestExtension>): Unit = action.execute(manifest)
 
-    fun signing(action: Action<in SigningExtension>) = action.execute(signing)
+    public fun signing(action: Action<in SigningExtension>): Unit = action.execute(signing)
 }

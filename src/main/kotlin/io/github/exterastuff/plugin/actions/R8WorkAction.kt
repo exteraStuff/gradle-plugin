@@ -7,11 +7,6 @@ import com.android.tools.r8.OutputMode
 import com.android.tools.r8.R8
 import com.android.tools.r8.R8Command
 import com.android.tools.r8.origin.Origin
-import java.io.File
-import java.nio.file.Path
-import java.util.zip.ZipEntry
-import java.util.zip.ZipFile
-import java.util.zip.ZipOutputStream
 import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.RegularFileProperty
@@ -20,11 +15,16 @@ import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
 import org.gradle.workers.WorkAction
 import org.gradle.workers.WorkParameters
+import java.io.File
+import java.nio.file.Path
+import java.util.zip.ZipEntry
+import java.util.zip.ZipFile
+import java.util.zip.ZipOutputStream
 
 private val ConfigurableFileCollection.paths: List<Path>
     get() = files.map(File::toPath)
 
-interface R8Parameters : WorkParameters {
+internal interface R8Parameters : WorkParameters {
     /** Plugin's fat-jar. */
     val programJars: ConfigurableFileCollection
 
@@ -53,7 +53,7 @@ interface R8Parameters : WorkParameters {
     val outputDir: DirectoryProperty
 }
 
-abstract class R8WorkAction : WorkAction<R8Parameters> {
+internal abstract class R8WorkAction : WorkAction<R8Parameters> {
     private val logger = Logging.getLogger(R8WorkAction::class.java)
 
     override fun execute() {

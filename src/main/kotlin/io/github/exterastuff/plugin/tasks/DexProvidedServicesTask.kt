@@ -1,7 +1,6 @@
 package io.github.exterastuff.plugin.tasks
 
 import io.github.exterastuff.plugin.actions.D8WorkAction
-import javax.inject.Inject
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.DirectoryProperty
@@ -16,53 +15,54 @@ import org.gradle.api.tasks.Nested
 import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.TaskAction
 import org.gradle.workers.WorkerExecutor
+import javax.inject.Inject
 
 @CacheableTask
-abstract class DexProvidedServicesTask : DefaultTask() {
-    companion object {
+public abstract class DexProvidedServicesTask : DefaultTask() {
+    internal companion object {
         /** Name a service takes inside the plugin jar, without the extension. */
-        internal fun serviceBaseName(coordinates: String): String {
+        fun serviceBaseName(coordinates: String): String {
             val (group, artifact, version) = coordinates.split(':')
             return "$group.$artifact-$version"
         }
     }
 
     /** A single `providedService` dependency. */
-    abstract class ProvidedServiceSpec {
+    public abstract class ProvidedServiceSpec {
         /** Maven coordinates of the service, `group:artifact:version`. */
-        @get:Input abstract val coordinates: Property<String>
+        @get:Input public abstract val coordinates: Property<String>
 
         /** Jar of the service, as it comes from the resolved classpath. */
-        @get:Classpath abstract val jar: RegularFileProperty
+        @get:Classpath public abstract val jar: RegularFileProperty
     }
 
-    @get:Nested abstract val providedServices: ListProperty<ProvidedServiceSpec>
+    @get:Nested public abstract val providedServices: ListProperty<ProvidedServiceSpec>
 
     /** Libraries that available on every device. */
-    @get:Classpath abstract val bootClasspathJars: ConfigurableFileCollection
+    @get:Classpath public abstract val bootClasspathJars: ConfigurableFileCollection
 
     /** Libraries the services compile against, needed to desugar them. */
-    @get:Classpath abstract val classpathJars: ConfigurableFileCollection
+    @get:Classpath public abstract val classpathJars: ConfigurableFileCollection
 
     /** R8 and its dependencies. Will be loaded into an isolated classloader. */
-    @get:Classpath abstract val r8Classpath: ConfigurableFileCollection
+    @get:Classpath public abstract val r8Classpath: ConfigurableFileCollection
 
     /** Minimal SDK version. Same as minSdk at compile time. */
-    @get:Input abstract val minSdk: Property<Int>
+    @get:Input public abstract val minSdk: Property<Int>
 
     /** Disable some optimizations in debug builds. */
-    @get:Input abstract val release: Property<Boolean>
+    @get:Input public abstract val release: Property<Boolean>
 
     /** Directory the raw dex files are written to before packing. */
-    @get:LocalState abstract val workDir: DirectoryProperty
+    @get:LocalState public abstract val workDir: DirectoryProperty
 
     /** Directory holding one dexed jar per service. */
-    @get:OutputDirectory abstract val outputDir: DirectoryProperty
+    @get:OutputDirectory public abstract val outputDir: DirectoryProperty
 
-    @get:Inject abstract val workers: WorkerExecutor
+    @get:Inject internal abstract val workers: WorkerExecutor
 
     @TaskAction
-    fun run() {
+    public fun run() {
         val output =
             outputDir.get().asFile.apply {
                 deleteRecursively()

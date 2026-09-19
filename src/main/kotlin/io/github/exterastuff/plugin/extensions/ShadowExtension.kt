@@ -1,16 +1,16 @@
 package io.github.exterastuff.plugin.extensions
 
-import javax.inject.Inject
 import org.gradle.api.Action
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
+import javax.inject.Inject
 
-abstract class ShadowExtension @Inject constructor(private val objects: ObjectFactory) {
-    abstract class RelocationSpec(val pkg: String) {
-        abstract val excludes: ListProperty<String>
+public abstract class ShadowExtension @Inject constructor(private val objects: ObjectFactory) {
+    public abstract class RelocationSpec @Inject constructor(public val pkg: String) {
+        public abstract val excludes: ListProperty<String>
 
-        fun exclude(vararg patterns: String) {
+        public fun exclude(vararg patterns: String) {
             excludes.addAll(*patterns)
         }
     }
@@ -20,23 +20,22 @@ abstract class ShadowExtension @Inject constructor(private val objects: ObjectFa
      *
      * Example: `"io.github.n08i40k.extera_shaded"`
      */
-    abstract val targetPackage: Property<String>
+    public abstract val targetPackage: Property<String>
 
-    abstract val relocations: ListProperty<RelocationSpec>
+    internal abstract val relocations: ListProperty<RelocationSpec>
 
     private fun newSpec(pkg: String): RelocationSpec =
         objects.newInstance(RelocationSpec::class.java, pkg.trimEnd('.'))
 
     /** Relocates (shades) provided package name to `shadedPackage`. */
-    fun relocate(vararg packages: String) {
-        packages.forEach { relocations.add(newSpec(it)) }
+    public fun relocate(vararg packages: String): Unit = packages.forEach {
+        relocations.add(newSpec(it))
     }
 
     /**
      * Relocates (shades) provided package name to `shadedPackage`. Also, can exclude certain
      * sub-packages or classes in the provided package from relocation.
      */
-    fun relocate(pkg: String, action: Action<RelocationSpec>) {
+    public fun relocate(pkg: String, action: Action<RelocationSpec>): Unit =
         relocations.add(newSpec(pkg).apply(action::execute))
-    }
 }

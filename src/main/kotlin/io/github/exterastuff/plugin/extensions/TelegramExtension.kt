@@ -3,7 +3,7 @@ package io.github.exterastuff.plugin.extensions
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.ListProperty
 
-abstract class TelegramExtension {
+public abstract class TelegramExtension {
     private companion object {
         val DEFAULT_CONFLICTING_PACKAGES =
             listOf(
@@ -18,7 +18,7 @@ abstract class TelegramExtension {
      *
      * Example: `files("libs/Telegram.jar")`
      */
-    abstract val jar: RegularFileProperty
+    public abstract val jar: RegularFileProperty
 
     /**
      * List of package prefixes that will be excluded from classpath. Can be used to avoid classpath
@@ -26,7 +26,7 @@ abstract class TelegramExtension {
      *
      * Example: `listOf("kotlin", "com.android.tools.r8")`
      */
-    abstract val conflictingPackages: ListProperty<String>
+    public abstract val conflictingPackages: ListProperty<String>
 
     init {
         conflictingPackages.convention(DEFAULT_CONFLICTING_PACKAGES)

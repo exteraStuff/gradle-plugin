@@ -1,8 +1,5 @@
 package io.github.exterastuff.plugin.tasks
 
-import java.net.URI
-import java.security.KeyStore
-import java.util.zip.ZipFile
 import jdk.security.jarsigner.JarSigner
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
@@ -14,24 +11,32 @@ import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.TaskAction
+import org.gradle.work.DisableCachingByDefault
+import java.net.URI
+import java.security.KeyStore
+import java.util.zip.ZipFile
 
-abstract class SignJarTask : DefaultTask() {
-    @get:InputFile abstract val unsignedJar: RegularFileProperty
+@DisableCachingByDefault(
+    because =
+        "Signature and TSA timestamp differ between runs, and key store passwords are not part of the cache key"
+)
+public abstract class SignJarTask : DefaultTask() {
+    @get:InputFile public abstract val unsignedJar: RegularFileProperty
 
-    @get:OutputFile abstract val signedJar: RegularFileProperty
+    @get:OutputFile public abstract val signedJar: RegularFileProperty
 
-    @get:InputFile abstract val keyStorePath: RegularFileProperty
+    @get:InputFile public abstract val keyStorePath: RegularFileProperty
 
-    @get:Input abstract val keyStoreAlias: Property<String>
+    @get:Input public abstract val keyStoreAlias: Property<String>
 
-    @get:Internal abstract val storePassword: Property<String>
+    @get:Internal public abstract val storePassword: Property<String>
 
-    @get:Internal abstract val keyPassword: Property<String>
+    @get:Internal public abstract val keyPassword: Property<String>
 
-    @get:Input abstract val tsaUrls: ListProperty<String>
+    @get:Input public abstract val tsaUrls: ListProperty<String>
 
     @TaskAction
-    fun run() {
+    public fun run() {
         val storePass = storePassword.get().toCharArray()
         val keyPass = keyPassword.orNull?.toCharArray() ?: storePass
 
