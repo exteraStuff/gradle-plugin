@@ -145,6 +145,9 @@ public abstract class ExteraPlugin : Plugin<Project> {
                     destinationDirectory.set(layout.buildDirectory.dir("intermediates/shaded"))
                     archiveFileName.set("classes-$variantName.jar")
 
+                    val runtimeJarFiles = runtimeJars.get()
+                    dependsOn(runtimeJarFiles)
+
                     mergeServiceFiles()
 
                     filesMatching(listOf("META-INF/*.kotlin_module", "META-INF/services/**")) {
@@ -161,6 +164,7 @@ public abstract class ExteraPlugin : Plugin<Project> {
                             it.destinationDirectory
                         }
                     )
+
                     from(runtimeJars.map { jars -> jars.map(::zipTree) })
 
                     val shadedPackage = extension.shadow.targetPackage.get()
