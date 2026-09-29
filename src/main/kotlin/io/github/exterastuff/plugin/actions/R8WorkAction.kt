@@ -57,10 +57,10 @@ internal abstract class R8WorkAction : WorkAction<R8Parameters> {
     private val logger = Logging.getLogger(R8WorkAction::class.java)
 
     override fun execute() {
+        val outputDir = parameters.outputDir.get()
+
         val output =
-            parameters.outputDir
-                .get()
-                .asFile
+            outputDir.asFile
                 .apply {
                     deleteRecursively()
                     mkdirs()
@@ -87,6 +87,7 @@ internal abstract class R8WorkAction : WorkAction<R8Parameters> {
                     parameters.relocatedPackages.get().map { "-dontwarn $it.**" },
                     Origin.root(),
                 )
+                .setProguardMapOutputPath(outputDir.file("mapping.txt").asFile.toPath())
                 .build()
 
         R8.run(command)
